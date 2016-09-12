@@ -1,0 +1,11 @@
+name: shepherd
+version: 0.1.0
+
+authors:
+  - classyPimp <classy.code.pimp@gmail.com>
+
+license: MIT
+
+dependencies:
+  radix:
+    github: luislavena/radix
