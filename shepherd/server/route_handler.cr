@@ -9,6 +9,24 @@ class Shepherd::Server::RouteHandler < HTTP::Handler
   end
 
 
+  @websocket_handlers : Array(Shepherd::Server::WebsocketRouteHandler)
+
+
+  def initialize
+    @websocket_handlers = Shepherd::Server::WebsocketRouteHandler.registered_handlers
+    set_websocket_handlers_next
+  end
+
+
+
+  def set_websocket_handlers_next : Nil
+    Shepherd::Server::WebsocketRouteHandler.registered_handlers.each do |handler|
+      handler.set_next(@next)
+    end
+  end
+
+
+
   def call(context : HTTP::Server::Context) : Nil
     process_request(context)
   end

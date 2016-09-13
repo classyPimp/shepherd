@@ -42,6 +42,4 @@ class Shepherd::Router::RoutesMap
   end
 
 
-
-
 end
