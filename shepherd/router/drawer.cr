@@ -1,12 +1,6 @@
 class Shepherd::Router::Drawer
 
-  # get "foo/:id" => "Test.index"
-  #
-  # namespace "api" do
-  #
-  #
-  #
-  # end
+  #TODO: write macros as much Rails like as possible
 
 
 end

@@ -1,26 +1,26 @@
-class Shepherd::Server::RouteHandler < HTTP::Handler
+class Shepherd::Server::Handlers::Main < HTTP::Handler
 
 
   INSTANCE = new
 
 
-  protected def self.instace
+  def self.instace
     INSTANCE
   end
 
 
-  @websocket_handlers : Array(Shepherd::Server::WebsocketRouteHandler)
+  @websocket_handlers : Array(Shepherd::Server::Handlers::WS::ConnectionEntry)
 
 
   def initialize
-    @websocket_handlers = Shepherd::Server::WebsocketRouteHandler.registered_handlers
+    @websocket_handlers = Shepherd::Server::Handlers::WS::ConnectionEntry.registered_handlers
     set_websocket_handlers_next
   end
 
 
 
   def set_websocket_handlers_next : Nil
-    Shepherd::Server::WebsocketRouteHandler.registered_handlers.each do |handler|
+    Shepherd::Server::Handlers::WS::ConnectionEntry.registered_handlers.each do |handler|
       handler.set_next(@next)
     end
   end
@@ -35,7 +35,8 @@ class Shepherd::Server::RouteHandler < HTTP::Handler
 
   def process_request(context : HTTP::Server::Context) : Nil
     #finds route on RoutesMap (radix tree)
-    route_handler = Shepherd::Router::RoutesMap.instance.find_route( context.request.method , context.request.path )
+    route_handler = Shepherd::Router::Http::Map.instance.find_route( context.request.method , context.request.path )
+
     #copies the param to context.request for later usage, e.g. accessing the
     #["user_id"] (#route_params on Server::Requst is added via monkey patch, refer there (CoreExtensions))
     transfer_route_params(from: route_handler, to: context.request )

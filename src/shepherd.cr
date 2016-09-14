@@ -1,5 +1,0 @@
-require "../shepherd/**"
-require "../routes/**"
-require "../config/**"
-require "../app/**"
-require "../initializers/**"

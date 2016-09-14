@@ -6,7 +6,7 @@ class Initializers::Middleware
 
   HANDLERS = [
 
-    Shepherd::Server::RouteHandler.new
+    Shepherd::Server::Handlers::Main.new
 
   ] of HTTP::Handler
 

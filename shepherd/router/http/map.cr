@@ -1,6 +1,6 @@
 require "radix"
 
-class Shepherd::Router::RoutesMap
+class Shepherd::Router::Http::Map
 
 
   INSTANCE = new
