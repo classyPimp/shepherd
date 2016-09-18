@@ -1,6 +1,6 @@
 require "radix"
 
-class Shepherd::Router::WS::Map
+class Shepherd::Router::WebSocket::Map
 
 
   @routes_map : Radix::Tree(Shepherd::TypeAliases::WS_MESSAGE_HANDLER_PROC)
@@ -21,5 +21,5 @@ class Shepherd::Router::WS::Map
     @routes_map.find path
   end
 
-  
+
 end

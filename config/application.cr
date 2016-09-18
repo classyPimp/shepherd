@@ -1,16 +1,5 @@
-class Config::Application < Shepherd::Configuration::Base
+class Config::Application
 
-  INSTANCE = new
-
-  def self.instance
-    INSTANCE
-  end
-
-  define_config_options({
-
-    project_root: { type: String, default: "#{Dir.current}/../", required: true}
-
-  })
-
+  PROJECT_ROOT = "#{Dir.current}/../"
 
 end

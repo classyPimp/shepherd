@@ -5,6 +5,7 @@ class Shepherd::Initializers::Main
 
   INSTANCE = new
 
+  @server : HTTP::Server?
   #singleton accessor, serves as "main" function.
   def self.start_application
     INSTANCE.bootstrap
@@ -19,6 +20,7 @@ class Shepherd::Initializers::Main
     parse_and_set_cli_options
     set_server_handlers
     draw_routes
+    initialize_server_with_handlers
     start_server
 
   end
@@ -41,7 +43,16 @@ class Shepherd::Initializers::Main
   # parses user defined routes map and sets them
   def draw_routes : Nil
     #call accesses the singleton
-    ::Routes::Map.draw
+    ::Routes::Map.instance.draw
+  end
+
+
+  def initialize_server_with_handlers : HTTP::Server
+    @server = HTTP::Server.new(
+      Shepherd::Configuration::Server.instance.get_host,
+      Shepherd::Configuration::Server.instance.get_port,
+      Shepherd::Server::HandlersSetup.instance.handlers.not_nil!
+    )
   end
 
 
@@ -49,14 +60,10 @@ class Shepherd::Initializers::Main
   def start_server : Nil
 
     puts "server is listening on:"
-    puts "port: #{Shepherd::Configuration::TopLevel.instance.get_port}"
-    puts "host: #{Shepherd::Configuration::TopLevel.instance.get_host}"
+    puts "port: #{Shepherd::Configuration::Server.instance.get_port}"
+    puts "host: #{Shepherd::Configuration::Server.instance.get_host}"
 
-    HTTP::Server.new(
-      Shepherd::Configuration::TopLevel.instance.get_host,
-      Shepherd::Configuration::TopLevel.instance.get_port,
-      Shepherd::Server::HandlersSetup.instance.handlers.not_nil!
-    ).listen
+    @server.as(HTTP::Server).listen
 
   end
 

@@ -1,11 +1,11 @@
 class App::WS::MessageControllers::Test
 
-  def initialize(@message, @connection, @context)
-
+  def initialize(@connection : HTTP::WebSocket, @context : HTTP::Server::Context, @message : String)
   end
 
   def index
-    @connection.print "all working!"
+    @connection.send "all working!"
   end
+
 
 end

@@ -24,7 +24,6 @@ class Shepherd::Router::Http::Map
   def add_route(method : String, path : String, &handler : Shepherd::TypeAliases::ROUTE_HANDLER_PROC) : Nil
 
     node = convert_to_radix_path(method.upcase, path)
-
     @routes_map.add node, handler
 
   end
@@ -38,7 +37,7 @@ class Shepherd::Router::Http::Map
 
   #TODO: refactor to using enums for HTTP methods
   def convert_to_radix_path(method : String, path : String) : String
-    "#{method}/#{path}"
+    "/#{method}#{path}"
   end
 
 

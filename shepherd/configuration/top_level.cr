@@ -1,4 +1,4 @@
-class Shepherd::Configuration::TopLevel < Shepherd::Configuration::Base
+class Shepherd::Configuration::General < Shepherd::Configuration::Base
 
   INSTANCE = new
 
@@ -8,9 +8,7 @@ class Shepherd::Configuration::TopLevel < Shepherd::Configuration::Base
 
   define_config_options({
 
-    port: { type: Int32, default: 3000, required: true},
-
-    host: { type: String, default: "0.0.0.0", required: true }
+    env: { type: String, default: "development", required: true}
 
   })
 

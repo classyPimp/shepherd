@@ -1,7 +1,7 @@
-class App::WS::ConnectionEntries::General < Shepherd::Controller::WS::ConnectionEntryBase
+class App::WS::ConnectionEntries::General < Shepherd::WebSockets::ConnectionEntry::Base
 
 
-  def on_connection_request(context : HTTP::Server::Context)
+  def self.on_connection_request(context : HTTP::Server::Context)
     connect
   end
 

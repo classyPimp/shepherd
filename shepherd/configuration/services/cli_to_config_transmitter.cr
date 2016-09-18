@@ -18,12 +18,12 @@ class Shepherd::Configuration::Services::CliToConfigTransmitter
   def transmit_to_top_level_config(options) : Nil
 
     options_to_pass = options.reject do |k,v|
-      unless Shepherd::Configuration::TopLevel::SUPPORTED_OPTIONS.includes?(k)
+      unless Shepherd::Configuration::Server::SUPPORTED_OPTIONS.includes?(k)
         true
       end
     end
 
-    Shepherd::Configuration::TopLevel::INSTANCE.set_options from: options_to_pass
+    Shepherd::Configuration::Server::INSTANCE.set_options from: options_to_pass
 
   end
 

@@ -6,6 +6,7 @@ class Initializers::Middleware
 
   HANDLERS = [
 
+    #HTTP::LogHandler.new,
     Shepherd::Server::Handlers::Main.new
 
   ] of HTTP::Handler

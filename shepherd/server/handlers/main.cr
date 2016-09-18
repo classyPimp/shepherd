@@ -9,18 +9,18 @@ class Shepherd::Server::Handlers::Main < HTTP::Handler
   end
 
 
-  @websocket_handlers : Array(Shepherd::Server::Handlers::WS::ConnectionEntry)
+  @websocket_handlers : Array(Shepherd::Server::Handlers::WebSocket::Connection)
 
 
   def initialize
-    @websocket_handlers = Shepherd::Server::Handlers::WS::ConnectionEntry.registered_handlers
+    @websocket_handlers = Shepherd::Server::Handlers::WebSocket::Connection.registered_handlers
     set_websocket_handlers_next
   end
 
 
 
   def set_websocket_handlers_next : Nil
-    Shepherd::Server::Handlers::WS::ConnectionEntry.registered_handlers.each do |handler|
+    Shepherd::Server::Handlers::WebSocket::Connection.registered_handlers.each do |handler|
       handler.set_next(@next)
     end
   end
@@ -52,7 +52,8 @@ class Shepherd::Server::Handlers::Main < HTTP::Handler
 
     #TODO: think of better way of handling exceptions
     rescue ex : Exception
-      puts ex.message
+      context.response.status_code = 500
+      context.response.print ex
   end
 
 
