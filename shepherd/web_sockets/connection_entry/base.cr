@@ -96,6 +96,8 @@ class Shepherd::WebSockets::ConnectionEntry::Base
   #this method is will be called in connection handler, it's purpose is to dipatch the message handler
   def after_connect_callback(socket : HTTP::WebSocket, context : HTTP::Server::Context) : Nil
 
+     on_connection_established(socket, context)
+
      socket.on_message do |message|
 
        @message_handler_for_this_connection_entry.process_message(socket, context, message)
@@ -123,6 +125,11 @@ class Shepherd::WebSockets::ConnectionEntry::Base
 
   def route_map : Shepherd::Router::WebSocket::Map
     @ws_map_for_this_connection
+  end
+
+
+  def on_connection_established(socket : HTTP::WebSocket, context : HTTP::Server::Context) : Nil
+
   end
 
   #TODO: probably should be deleted

@@ -9,27 +9,20 @@ class Routes::Map < Shepherd::Router::Drawer
       get "/instantial", to: "test#instantial"
 
     end
-#     put "/baz", to: "test#update"
+
+    get "/", to: "test#index"
 #
-#
-#
-#     namespace "/api" do
-#       resources "test"
-#       get "/shcmoe", to: "test#index"
-#
-#     end
-#
-#     ws_connection "/ws", to: "general" do
-#
-#       msg "/foo", to: "test#index"
-#
-#       namespace "/bar" do
-#
-#         msg "/baz", to: "test#index"
-#
-#       end
-#
-#     end
+    ws_connection "/ws", to: "general" do
+
+      msg "/foo", to: "test#index"
+
+      namespace "/bar" do
+
+        msg "/baz", to: "test#index"
+
+      end
+
+    end
     #resources "test"
     # Shepherd::Router::Http::Map.instance.add_route( "put", "/test/:id") do |context|
     #   App::Controllers::Test.new(context).update

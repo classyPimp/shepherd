@@ -6,4 +6,9 @@ class App::WS::ConnectionEntries::General < Shepherd::WebSockets::ConnectionEntr
   end
 
 
+  def on_connection_established(socket : HTTP::WebSocket, context : HTTP::Server::Context) : Nil
+
+  end
+
+
 end

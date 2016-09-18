@@ -43,7 +43,19 @@ class Shepherd::Server::Handlers::WebSocket::StringMessage
   end
 
   def split_route_and_payload(message)
-    {message, message}
+
+    index = 0_i8
+
+    message.each_char do |char|
+      break if char == '|'
+      index += 1
+    end
+
+    {
+      message[0...index], #path
+      message[index + 1..-1] #payload
+    }
+
   end
 
 end
