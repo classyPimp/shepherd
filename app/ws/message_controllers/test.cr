@@ -1,14 +1,12 @@
-class App::WS::MessageControllers::Test
+class App::WS::MessageControllers::Test < Shepherd::WebSockets::MessageController::Base
 
-  def initialize(@connection : HTTP::WebSocket, @context : HTTP::Server::Context, @message : String)
-  end
 
   def index
-    @connection.send "all working!"
+    send "all working!"
   end
 
   def self.echo(connection : HTTP::WebSocket, context : HTTP::Server::Context, message : String)
-    connection.send("foo")
+    connection.send(message)
   end
 
 end

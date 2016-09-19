@@ -2,7 +2,7 @@ class App::Controllers::Test < Shepherd::Controller::Base
 
   has_functional_actions
 
-  def self.functional(context)
+  def self.functional(context : HTTP::Server::Context) : Nil
     render context, plain: "Hello world!"
   end
 

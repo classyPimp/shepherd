@@ -96,11 +96,20 @@ class Shepherd::WebSockets::ConnectionEntry::Base
   #this method is will be called in connection handler, it's purpose is to dipatch the message handler
   def after_connect_callback(socket : HTTP::WebSocket, context : HTTP::Server::Context) : Nil
 
-     on_connection_established(socket, context)
+    #for now __on_connection_established__ calls on_connection_established, maybe later app will need
+    #to perform some app specific stuff on connection
+     __on_connection_established__(socket, context)
 
      socket.on_message do |message|
 
+       #finds route and calls it's result (MEssagehandler controller)
        @message_handler_for_this_connection_entry.process_message(socket, context, message)
+
+     end
+
+     socket.on_close do |message|
+
+       __on_connection_closing__(socket, context)
 
      end
 
@@ -109,7 +118,7 @@ class Shepherd::WebSockets::ConnectionEntry::Base
 
   #this is default, but supposed that user overrides it, for e.g. checking ath and etc.
   #example: connect(context) if current_user.roles.is_admin?
-  #or simply return nothing and no connection will be established
+  #or simply return nothing (or reject) and no connection will be established
   def on_connection_request(context : HTTP::Server::Context) : Nil
     connect(context)
   end
@@ -122,15 +131,41 @@ class Shepherd::WebSockets::ConnectionEntry::Base
   end
 
 
+  #should be called in #on_connection_request
+  def reject(context : HTTP::Server::Context) : Nil
+    context.response.status_code = 401
+  end
 
+
+  #getter for route map, returns instace of ws map for this connection entry instance
   def route_map : Shepherd::Router::WebSocket::Map
     @ws_map_for_this_connection
   end
 
 
+  def __on_connection_established__(socket : HTTP::WebSocket, context : HTTP::Server::Context) : Nil
+    on_connection_established(socket, context)
+  end
+
+
+  #serves as callback in user defined connection entry
+  #will be called as soon as #connect caused WS handler to #call, this method is n WS @proc body
   def on_connection_established(socket : HTTP::WebSocket, context : HTTP::Server::Context) : Nil
 
   end
+
+
+  #serves as callback in user defined connection entry
+  #will be called as soon as WS handler starts to disconnect, this method is n WS @proc body
+  #should be used for e.g. cleanup and etc.
+  def __on_connection_closing__(socket : HTTP::WebSocket, context : HTTP::Server::Context) : Nil
+    on_connection_closing(socket, context)
+  end
+
+  def on_connection_closing(socket : HTTP::WebSocket, context : HTTP::Server::Context) : Nil
+
+  end
+
 
   #TODO: probably should be deleted
   # def disconnect(connection : HTTP::WebSocket)

@@ -1,20 +1,23 @@
+#thish class will be a property of connection entry class
 class Shepherd::Server::Handlers::WebSocket::StringMessage
 
 
   @route_map : Shepherd::Router::WebSocket::Map
 
+
   def initialize(@route_map : Shepherd::Router::WebSocket::Map)
   end
 
 
-
+  #this method is called in #on_message block in WS HANDLER proc
   def process_message(connection : HTTP::WebSocket,
                       context : HTTP::Server::Context,
                       message : String
                       ) : Nil
-
+    #splits message and payload from message that follows this convention
+    # /foo|{payload: "bar"} (route path and payload must be delimeted by '|')
     route_name, payload = split_route_and_payload(message)
-    #finds route on RoutesMap (radix tree)
+    #finds route on RoutesMap (radix tree) (that is a property in connectionentry (specific instance for it))
     route_handler = @route_map.find_route( route_name )
 
     #calls the appropriate controller for route
@@ -27,7 +30,8 @@ class Shepherd::Server::Handlers::WebSocket::StringMessage
 
 
 
-
+  #finds route corresponding to message path calling it result or sending "404"
+  #though socket connection
   def dispatch_route(connection : HTTP::WebSocket,
                     context : HTTP::Server::Context,
                     payload : String,
@@ -37,21 +41,25 @@ class Shepherd::Server::Handlers::WebSocket::StringMessage
     if route_handler.found?
       route_handler.payload.call( connection, context, payload )
     else
-      connection.send "not found"
+      connection.send "404"
     end
 
   end
 
-  def split_route_and_payload(message)
 
-    index = 0_i8
+  #splits message and payload from message that follows this convention
+  # /foo|{payload: "bar"} (route path and payload must be delimeted by '|')
+  # CAN ANYONE MAKE IT FASTER please?
+  def split_route_and_payload(message) : Tuple(String, String)
+    index = 0_i16
     found = false
     message.each_char do |char|
       if char == '|'
         found = true
         break
+      else
+        index += 1
       end
-      index += 1
     end
     if found
     {
@@ -59,7 +67,7 @@ class Shepherd::Server::Handlers::WebSocket::StringMessage
       message[index + 1..-1] #payload
     }
     else
-      {"/echo", ""}
+      {"/echo", message}
     end
   end
 
