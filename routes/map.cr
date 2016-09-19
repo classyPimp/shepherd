@@ -14,6 +14,8 @@ class Routes::Map < Shepherd::Router::Drawer
 #
     ws_connection "/ws", to: "general" do
 
+      msg "/echo", to: "test.echo"
+
       msg "/foo", to: "test#index"
 
       namespace "/bar" do
