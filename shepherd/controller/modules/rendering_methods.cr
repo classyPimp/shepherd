@@ -9,15 +9,15 @@ module Shepherd::Controller::Modules::RenderingMethods
 
 
   #simply assigning the status code
-  def head(status_code : Int32)
+  def head(status_code : Int32) : Nil
     @context.response.status_code = status_code
   end
 
 
 
-  def render(json value, parser = nil)
+  def render(json value, parser = nil) : Nil
     @context.response.content_type = Shepherd::Server::Mimes::APPLICATION_JSON
-    @context.response.print value.to_json
+    @context.response << value.to_json
   end
 
 

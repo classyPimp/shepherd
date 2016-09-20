@@ -7,6 +7,7 @@ class Initializers::Middleware
   HANDLERS = [
 
     #HTTP::LogHandler.new,
+    #HTTP::StaticFileHandler.new(Config::Application::PUBLIC_DIR),
     Shepherd::Server::Handlers::Main.new
 
   ] of HTTP::Handler

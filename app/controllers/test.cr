@@ -7,7 +7,7 @@ class App::Controllers::Test < Shepherd::Controller::Base
   end
 
   def instantial
-    render plain: "Hello world"
+    render json: {"foo" => "bar"}
   end
 
   def json
