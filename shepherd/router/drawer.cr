@@ -78,7 +78,7 @@ class Shepherd::Router::Drawer
   end
 
 
-  macro namespace(path, &block)
+  macro scope(path, &block)
     @path << {{path}}
     {{ block.body }}
     @path.pop

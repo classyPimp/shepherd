@@ -9,6 +9,13 @@ class Config::Env::Development < Shepherd::Configuration::AppDomainBase
     #
     # end
 
+
+    security do
+
+      set secret_key: "asdasdasdasdasd"
+
+    end
+
   end
 
 

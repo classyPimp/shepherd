@@ -2,7 +2,7 @@ class Routes::Map < Shepherd::Router::Drawer
 
   def draw
 
-    namespace "/benchmark" do
+    scope "/benchmark" do
 
       get "/functional", to: "test.functional"
 
@@ -18,7 +18,7 @@ class Routes::Map < Shepherd::Router::Drawer
 
       msg "/foo", to: "test#index"
 
-      namespace "/bar" do
+      scope "/bar" do
 
         msg "/baz", to: "test#index"
 

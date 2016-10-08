@@ -8,17 +8,21 @@ class Shepherd::Server::Handlers::Main < HTTP::Handler
     INSTANCE
   end
 
-
-  @websocket_handlers : Array(Shepherd::Server::Handlers::WebSocket::Connection)
+  #web socket connection entries are not "pushed" in to middleware. instead they just exist independently,
+  #and their instances are abstractly simply http route "results". But in order to simulate the middlewarenes of them
+  # they are fetched in main handler and given the @next handler of main, so they can also call_next.
+  @websocket_connection_entries : Array(Shepherd::Server::Handlers::WebSocket::Connection)
 
 
   def initialize
-    @websocket_handlers = Shepherd::Server::Handlers::WebSocket::Connection.registered_handlers
+    #grabs the instances of prepared Ws handlers
+    @websocket_connection_entries = Shepherd::Server::Handlers::WebSocket::Connection.registered_handlers
     set_websocket_handlers_next
   end
 
 
-
+  #as ws handlers do not go in to middleware directly, but thy are still server handlers, to simulate their
+  #middlewareness they are given a next if call_next for after handlers is necessary.
   def set_websocket_handlers_next : Nil
     Shepherd::Server::Handlers::WebSocket::Connection.registered_handlers.each do |handler|
       handler.set_next(@next)
@@ -65,6 +69,7 @@ class Shepherd::Server::Handlers::Main < HTTP::Handler
     if route_handler.found?
       route_handler.payload.call( context )
     else
+      #TODO: should send public/404.html file instead
       Shepherd::Controller::Response404.new( context ).index
     end
 

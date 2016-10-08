@@ -52,7 +52,7 @@ class Shepherd::WebSockets::ConnectionEntry::Base
   ##on_connection_request is passed to block that is added to main http router map
   @incoming_connection_handler : Shepherd::Server::Handlers::WebSocket::Connection
 
-  #Each connection has it's own map, instead of building namespaces all the time in one big ws route map
+  #Each connection has it's own map, instead of building scopes all the time in one big ws route map
   @ws_map_for_this_connection : Shepherd::Router::WebSocket::Map
 
   #this instance has the #process_message. After connection established, to connection#on_message block

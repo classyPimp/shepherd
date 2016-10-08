@@ -84,7 +84,7 @@ example usage:
 ```ruby
 App::Routes::Map
     def draw
-        namespace "/api" do
+        scope "/api" do
           get "/foo", to: "users.index" #delimit method with dot so it won't be instantiated
         end
     end
@@ -131,17 +131,17 @@ class App::Routes::Map
         #adds parametrized routes like Rails
         get "/users/:id", to: "users#show" # later access in controller params.route["id"]
 
-        #adds namespaced routes like Rails
-        namespace "/api" do
+        #adds scoped routes like Rails
+        scope "/api" do
 
             # path is /api/bar
             post "/bar", to: "posts.joe"
 
-            #namespaces can be nested
-            namespace "/foo/v1" do
+            #scopes can be nested
+            scope "/foo/v1" do
                 #path is /api/foo/v1/baz
                 delete "/baz", to: "posts#delete"
-                #resource routes will respect namespaced paths
+                #resource routes will respect scoped paths
                 resources "posts", with: ["#index", ".show", ".delete"]
             end
 
@@ -184,7 +184,7 @@ you just reason about it the same as you would do with standart Http routing
 # in router
 ws_connection "/general", to: "general" do
   msg "/index", to: "test#index"
-  namespace "/test" do
+  scope "/test" do
     msg "/show", to: "test#show"
   end
   msg "/delete", to "test#delete"

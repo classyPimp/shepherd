@@ -18,7 +18,7 @@ class App::Controllers::Test < Shepherd::Controller::Base
   end
 
   def index : Nil
-    render plain: "test#index"
+    render plain: Shepherd::Configuration::Security::INSTANCE.get_secret_key
   end
 
 
