@@ -10,6 +10,10 @@ class App::Controllers::Test < Shepherd::Controller::Base
     render json: {"foo" => "bar"}
   end
 
+  def home
+    render plain: "HELLO THERE!"
+  end
+
   def json
 
     r = {"array" => [1, 2, 3], "dict" => {"one" => 1, "two" => 2, "three" => 3}, "int" => 42, "string" => "test", "double" => 3.14, "null" => nil}

@@ -10,7 +10,11 @@ class Routes::Map < Shepherd::Router::Drawer
 
     end
 
-    get "/", to: "test#index"
+    get "/", to: "test#home"
+
+    resources "test"
+
+    #get "/", to: "test#index"
 #
     ws_connection "/ws", to: "general" do
 

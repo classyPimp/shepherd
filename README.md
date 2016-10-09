@@ -9,11 +9,35 @@ Crystal web framework with these goals:
 
 TODO: more goals will be added. It's just 0.1 yet :)
 
+# for quick preview and fast grasp on how it works
+clone
+cd to it
+run `crystall app.cr`
+
+look inside routes/map.cr, everything looks familiar?
+look inside app/controllers/test.cr
+
+hit localhost:3000/test or localhost:3000/test/1
+look what App::Controllers::Test#index or #show method does  
+
+look inside routes/map.cr at ws_connection. something new right?
+look at app/controllers/ws/connection_entries/general.cr
+
+in browser run something like `var socket = new Websocket("ws://localhost:3000/ws")`
+look at App::WS::ConnectionEntries::General#on_connection_request in app/ws/connection_entries/general.cr
+
+run `socket.send('/foo')`
+look at App::WS::MessageControllers::Test#index in app/ws/message_controllers/test.cr
+
+run `socket.send('/echo|{message: "hi!"}')`
+look at App::WS::MessageControllers::Test.echo
+
+
 # Controllers
 
 We all know what they are. It's just a POCR (plain old Crystal) :) classes which will be instantiated, and whose method will be called when router mathces appropriate request path.
 
-One thing though, they are supposed not to be the god objects like they often are, but rather "main" functions for each request, dispatching to other reponsible classes.
+One thing though, they are supposed not to be the god objects like they often are, but rather "main" functions for each request, dispatching to other responsible classes.
 
 Your controllers reside in app/controllers/, and to add one just add a class
 following this name convention:
