@@ -4,7 +4,9 @@
 # this class sole responsibility: if file exists and  is GET and path is not /, send it
 # This should be used only for development, in other cases you will anyway use proxy server as NGINX for example
 # and if you need serving file from app (e.g. proptected file) send it via x_send_file(file) to cause your server send it.
-class Shepherd::Server::Handlers::StaticFile < HTTP::Handler
+class Shepherd::Server::Handlers::StaticFile
+
+  include HTTP::Handler
 
   #serves as dir from where files should be served
   @public_dir : String

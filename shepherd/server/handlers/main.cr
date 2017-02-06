@@ -1,5 +1,6 @@
-class Shepherd::Server::Handlers::Main < HTTP::Handler
+class Shepherd::Server::Handlers::Main
 
+  include HTTP::Handler
 
   INSTANCE = new
 
@@ -58,6 +59,8 @@ class Shepherd::Server::Handlers::Main < HTTP::Handler
     rescue ex : Exception
       context.response.status_code = 500
       context.response.print ex
+      context.response.print ex.backtrace
+      context.response.print ex.callstack
   end
 
 

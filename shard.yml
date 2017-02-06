@@ -9,3 +9,9 @@ license: MIT
 dependencies:
   radix:
     github: luislavena/radix
+  multipart:
+    github: RX14/multipart.cr
+  db:
+    github: crystal-lang/crystal-db
+  pg:
+    github: will/crystal-pg

@@ -9,7 +9,7 @@ class Initializers::Middleware
     #HTTP::LogHandler.new,
     #HTTP::StaticFileHandler.new(Config::Application::PUBLIC_DIR),
     #for serving files in develepment env you can use this handler
-    #Shepherd::Server::Handlers::StaticFile.new(Config::Application::PUBLIC_DIR),
+    Shepherd::Server::Handlers::StaticFile.new(Config::Application::PUBLIC_DIR),
     Shepherd::Server::Handlers::Main.new
 
   ] of HTTP::Handler

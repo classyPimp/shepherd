@@ -12,8 +12,10 @@ class Shepherd::Server::Request::Params
   @query : HTTP::Params | Nil
   #lazy
   @encoded_form : HTTP::Params | Nil
-
-
+  #lazy
+  @multipart_form : Hash(String, String | Shepherd::Server::Request::MultipartFileWrapper) | Nil
+  #lazy
+  @body_gets_to_end_contents : String | Nil
 
   def initialize(context_request : HTTP::Request)
     @context_request = context_request
@@ -32,21 +34,51 @@ class Shepherd::Server::Request::Params
   end
 
   #returns the body
-  def body : String?
+  def body : IO?
     @context_request.body
+  end
+
+  def body_as_string : String
+    if @body_gets_to_end_contents
+      @body_gets_to_end_contents.as(String)
+    else
+      @body_gets_to_end_contents = @context_request.body.as(IO).gets_to_end
+      @body_gets_to_end_contents.to_s
+    end
   end
 
   #parses via HTTP::Params parse if headers include url_endoded_form else
   #returns empty HTTP::Params instance
   def encoded_form : HTTP::Params
-    @encoded_form ||= Shepherd::Server::Request::UrlEncodedFormParser.parse(@context_request)
+    @encoded_form ||= Shepherd::Server::Request::UrlEncodedFormParser.parse(@context_request, self)
   end
 
+
+  #accesses mutlripart and returns parsed hash of field => data pairs #
+  def multipart_form : Hash(String, Shepherd::Server::Request::MultipartFileWrapper | String)
+    @multipart_form ||= Shepherd::Server::Request::MultipartFormParser.parse(@context_request, self)
+  end
+
+
   #returns url query params or empty HTTP::Params
-  def url_query : HTTP::Params
+  def uri_query : HTTP::Params
     @context_request.query_params
   end
 
+
+  #will call appropriate parses depending on content type in request's Content-Type
+  def self.parse(context_request : HTTP::Request) : (HTTP::Params | Hash(String, String) | JSON::Any | Hash(String, Shepherd::Server::Request::MultipartFileWrapper | String))
+    headers = context_request.headers["Content-Type"]?.to_s
+    if headers.includes? "multipart/form-data"
+      self.new(context_request).multipart_form
+    elsif headers.includes? "application/json"
+      self.new(context_request).json
+    elsif headers.includes? "application/x-www-form-urlencoded"
+      self.new(context_request).encoded_form
+    else
+      Hash(String, String).new
+    end
+  end
 
   #TODO: make typed json accessor
   def typed_json(args_name)

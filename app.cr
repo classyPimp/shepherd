@@ -1,3 +1,4 @@
+require "multipart"
 require "./shepherd/**"
 require "./routes/**"
 require "./config/**"

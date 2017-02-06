@@ -2,7 +2,6 @@ class App::WS::ConnectionEntries::General < Shepherd::WebSockets::ConnectionEntr
 
 
   def on_connection_request(context : HTTP::Server::Context) : Nil
-    puts "connecting"
     connect(context)
   end
 

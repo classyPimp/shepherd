@@ -1,6 +1,18 @@
 version: 1.0
 shards:
+  db:
+    github: crystal-lang/crystal-db
+    version: 0.3.3
+
+  multipart:
+    github: RX14/multipart.cr
+    version: 0.1.2
+
+  pg:
+    github: will/crystal-pg
+    version: 0.13.1
+
   radix:
     github: luislavena/radix
-    version: 0.3.1
+    version: 0.3.6
 
