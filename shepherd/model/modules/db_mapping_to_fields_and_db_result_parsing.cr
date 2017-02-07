@@ -2,53 +2,91 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
 
   module Macros
 
-    #this macro is central for mapping properties to database fields
-    #it will set the config like @@database_field_names_and_their_indexes_string_keys
-    #and define a method assign_db_field_property_by_its_index which is used when parsing result
-    #the @database_field_names_and_their_indexes_string_keys will contain "abstract" index, used later when result is fetched
-    ##calculate_indexes_for_db_fields_properties will build array of these indexes which can be iterated to populate
-    #eg @@database_field_names_and_their_indexes_string_keys["id" => 1, "name" => 2]
-    #result_set => column_names["id", "name"], row values [1, "foo"]
-    #calculate_indexes_for_db_fields_properties(result_set) => [1,2]
-    #result_set => column_names["name", "id"], row values ["foo", 1]
-    ##calculate_indexes_for_db_fields_properties(result_set) => [2,1]
-    #TODO: think of maybe can be optimized by storing assigning proc in static array, and later accessed by offset
-    #TODO: properties should be nillable by default, and explisitly set if otherwise
+
     macro database_mapping(mapping_options)
 
-      #this part will result in following: example
-      #database_mapping {
-      #   table_name: "users"
-      #   column_names: {
-      #     {"id" => {type: String, nillable: true}}
-      #   }
-      # }
+      {% column_names_and_their_options = mapping_options[:column_names] %}
 
-      #property :id
-      #@id : String?
-      #@@database_field_names_and_their_indexes_string_keys => {"id" => 1}
-      #@@table_name = "users"
+      macro_set_table_name("{{mapping_options[:table_name].id}}")
 
-      @@table_name = "{{mapping_options[:table_name].id}}"
+      macro_set_primary_key({{column_names_and_their_options.id}})
 
-      #sets propety and it's type
-      {% x = 1 %}
-      {% for field_name, field_options in mapping_options[:column_names] %}
+      macro_set_field_properties_their_types({{column_names_and_their_options.id}})
+
+      macro_set_string_db_field({{column_names_and_their_options.id}})
+
+      macro_set_string_db_field_names_array_without_primary_key({{column_names_and_their_options.id}})
+
+      macro_set_database_field_names_and_their_indexes_string_keys({{column_names_and_their_options.id}})
+
+      macro_set_database_field_names_and_their_indexes_symbol_keys({{column_names_and_their_options.id}})
+
+      macro_generate_method_assign_db_field_property_by_its_index({{column_names_and_their_options.id}})
+
+      macro_set_field_setter_by_column_name_procs({{column_names_and_their_options.id}})
+
+
+      def assign_property_by_name(column_name : String, result_set : ::DB::ResultSet) : Nil
+        @@field_setter_by_column_name_procs[column_name].call(self, result_set)
+      end
+
+
+      macro_set_field_getter_by_column_name_procs({{column_names_and_their_options.id}})
+
+
+      def get_property_by_name(column_name : String) : DB::Any
+        @@field_getter_by_column_name_procs[column_name].call(self)
+      end
+
+      macro_generate_method_get_db_field_property_by_its_index({{column_names_and_their_options.id}})
+
+
+    end
+
+#
+#
+#
+#
+#
+#
+#
+
+    macro macro_set_table_name(table_name)
+      @@table_name = "{{table_name.id}}"
+    end
+
+
+    macro macro_set_primary_key(column_names_and_their_options)
+
+      {% for field_name, field_options in column_names_and_their_options %}
+        {%if field_options[:primary_key]%}
+
+          @@primary_key_name = "{{field_name.id}}"
+
+        {% end %}
+      {% end %}
+
+    end
+
+
+    macro macro_set_field_properties_their_types(column_names_and_their_options)
+
+      {% for field_name, field_options in column_names_and_their_options %}
 
         property :{{field_name.id}}
         @{{field_name.id}} : {{field_options[:type]}}{{"?".id unless field_options[:nillable] == false}}
-        {%if field_options[:primary_key]%}
-          @@primary_key_name = "{{field_name.id}}"
-        {% end %}
-      {% x = x + 1 %}
+
       {% end %}
 
+    end
 
 
+    macro macro_set_string_db_field(column_names_and_their_options)
       @@string_db_field_names_array = [
 
-        {% size_flag = mapping_options[:column_names].keys.size %}
-        {% for field_name, field_options in mapping_options[:column_names] %}
+        {% size_flag = column_names_and_their_options.keys.size %}
+
+        {% for field_name, field_options in column_names_and_their_options %}
 
           {% size_flag = size_flag - 1 %}
 
@@ -56,17 +94,26 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
 
         {% end %}
       ]
+    end
+
+
+    macro macro_set_string_db_field_names_array_without_primary_key(column_names_and_their_options)
+      {% array = [] of String %}
+
+      {% for field_name, options in column_names_and_their_options %}
+        {% array << "#{field_name.id}" unless options[:primary_key] %}
+      {% end %}
 
       @@string_db_field_names_array_without_primary_key : Array(String)
-      @@string_db_field_names_array_without_primary_key = @@string_db_field_names_array.reject do |name|
-        name == @@primary_key_name
-      end
+      @@string_db_field_names_array_without_primary_key = {{array.id}}
 
+    end
 
+    macro macro_set_database_field_names_and_their_indexes_string_keys(column_names_and_their_options)
       @@database_field_names_and_their_indexes_string_keys = {
         {% x = 1 %}
-        {% size_flag = mapping_options[:column_names].keys.size %}
-        {% for field_name, field_options in mapping_options[:column_names] %}
+        {% size_flag = column_names_and_their_options.keys.size %}
+        {% for field_name, field_options in column_names_and_their_options %}
 
           {% size_flag = size_flag - 1 %}
 
@@ -76,35 +123,24 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
 
         {% end %}
       }
+    end
 
 
+    macro macro_set_database_field_names_and_their_indexes_symbol_keys(column_names_and_their_options)
       @@database_field_names_and_their_indexes_symbol_keys = {
-        {% x = 1 %}
-        {% size_flag = mapping_options[:column_names].keys.size %}
-        {% for field_name, field_options in mapping_options[:column_names] %}
-
+        {% x = 0%}
+        {% size_flag = column_names_and_their_options.keys.size %}
+        {% for field_name, field_options in column_names_and_their_options%}
+          {% x = x + 1 %}
           {% size_flag = size_flag - 1 %}
 
           {{field_name.id}}: {{x.id}}{{",".id unless size_flag == 0}}
 
-          {% x = x + 1 %}
-
         {% end %}
       }
+    end
 
-      #this part will result in following: example
-      #database_mapping {"id" => {type: String, nillable: true}}
-      # def assign_db_field_property_by_its_index(index : Int32, result_set : DB::ResultSet) : Nil
-      #   case index
-      #     #0 will be in index by default if no value under column_name is mapped to model
-      #     when 0
-      #       return nil
-      #     when 1
-      #       if (value_to_assign_to_property = result_set.read)
-      #         @id = value_to_assign_to_property.as(String)
-      #       end
-      #   end
-      # end
+    macro macro_generate_method_assign_db_field_property_by_its_index(column_names_and_their_options)
       def assign_db_field_property_by_its_index(*, index : Int32, result_set : DB::ResultSet) : Nil
         {% x = 1 %}
         case index
@@ -112,7 +148,7 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
               #should move position to next if no mapping
               result_set.read
               return nil
-          {%  for field_name, field_options in mapping_options[:column_names]  %}
+          {%  for field_name, field_options in column_names_and_their_options  %}
             when {{x.id}}
               if (value_to_assign_to_property = result_set.read)
                 @{{field_name.stringify.id}} = value_to_assign_to_property.as({{field_options[:type]}})
@@ -121,12 +157,14 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
           {% end %}
         end
       end
+    end
 
 
+    macro macro_set_field_setter_by_column_name_procs(column_names_and_their_options)
 
       @@field_setter_by_column_name_procs = {
-        {% size_flag =  mapping_options[:column_names].keys.size %}
-        {%  for field_name, field_options in mapping_options[:column_names]  %}
+        {% size_flag =  column_names_and_their_options.keys.size %}
+        {%  for field_name, field_options in column_names_and_their_options %}
           {% size_flag = size_flag - 1 %}
         "{{field_name.id}}":  Proc({{@type.id}}, ::DB::ResultSet, Nil).new do |model, result_set|
             if (value_to_assign_to_property = result_set.read)
@@ -136,59 +174,48 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
         {% end %}
       }
 
-
-      def assign_property_by_name(column_name : String, result_set : ::DB::ResultSet) : Nil
-        @@field_setter_by_column_name_procs[column_name].call(self, result_set)
-      end
+    end
 
 
-
+    macro macro_set_field_getter_by_column_name_procs(column_names_and_their_options)
       @@field_getter_by_column_name_procs = {
-        {% length =  mapping_options[:column_names].keys.size %}
-        {%  for field_name, field_options in mapping_options[:column_names]  %}
+        {% length =  column_names_and_their_options.keys.size %}
+        {%  for field_name, field_options in column_names_and_their_options  %}
           {% length = length - 1 %}
         "{{field_name.id}}":  Proc( {{@type.id}}, DB::Any).new do |model|
               model.{{field_name.stringify.id}}
           end{{",".id unless length == 0}}
         {% end %}
       }
-
-      def get_property_by_name(column_name : String) : DB::Any
-        @@field_getter_by_column_name_procs[column_name].call(self)
-      end
+    end
 
 
-      #get_by_index
+    macro macro_generate_method_get_db_field_property_by_its_index(column_names_and_their_options)
       def get_db_field_property_by_its_index(index : Int32) : ::DB::Any
         {% x = 1 %}
         case index
             when 0
               return nil
-          {%  for field_name, field_options in mapping_options[:column_names]  %}
+          {%  for field_name, field_options in column_names_and_their_options %}
             when {{x.id}}
               @{{field_name.stringify.id}}
             {% x = x + 1%}
           {% end %}
         end
       end
-
-      # #get_by_its_name
-      # def get_db_field_property_by_its_field_name(field_name : String) : ::DB::Any
-      #   {% x = 1 %}
-      #   case field_name
-      #   when 0
-      #     return nil
-      #   {%  for field_name, field_options in mapping_options[:column_names]  %}
-      #   when "{{field_name.id}}"
-      #         @{{field_name.id}}
-      #       {% x = x + 1%}
-      #   {% end %}
-      #   end
-      # end
-
     end
 
+
   end
+
+#
+#
+#
+#
+#
+#
+#
+
 
   module ClassMethods
 

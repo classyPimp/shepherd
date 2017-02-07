@@ -1,6 +1,6 @@
-require "../interfaces/create"
+require "../../interfaces/create"
 
-class Shepherd::Model::QueryBuilder::Create::Postgres(T)
+class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(T)
 
   include Shepherd::Model::QueryBuilder::Interfaces::Create
 
@@ -30,8 +30,7 @@ class Shepherd::Model::QueryBuilder::Create::Postgres(T)
 
     @query_to_execute = build_query
     @values_to_insert = get_values_to_insert
-    p @query_to_execute
-    p @values_to_insert
+
     returning_id = DATABASE_CONNECTION.scalar(@query_to_execute.not_nil!, @values_to_insert).as(Int32)
 
     if returning_id

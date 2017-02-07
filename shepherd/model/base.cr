@@ -10,5 +10,8 @@ class Shepherd::Model::Base
     Shepherd::Model::Repository(self).new(self)
   end
 
+  def self.repository : Shepherd::Model::Repository
+    Shepherd::Model::Repository(self).new
+  end
 
 end

@@ -11,12 +11,13 @@ class Models::User < Shepherd::Model::Base
     }
   )
 
-  #TODO: IMPLEMENT
-  # association_config(
+
+  # associations_config(
   #   {
   #     has_many: [:accounts, class: Account, local_key: "id", foreign_key: "user_id"],
   #     has_one: [:account, class: Account, local_key: "id", foreign_key: "user_id"],
-  #     belongs_to: [:account, class: Account, local_key: "account_id", foreign_key: "id"]
+  #     belongs_to: [:account, class: Account, local_key: "account_id", foreign_key: "id"],
+  #     has_one_through: [:account, through: :account]
   #   }
   # )
 

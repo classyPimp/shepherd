@@ -23,16 +23,20 @@ class App::Controllers::Test < Shepherd::Controller::Base
 
   def index : Nil
 
-    user = Models::User.new
-    user.name = "Joe"
-    user.age = 20
-    user.email = "joe@doe.com"
-    user.repository.create.execute
-
-    p user.id
-    p user.name
-    p user.email
-    p "done"
+    # user = Models::User.new
+    # user.name = "Joe"
+    # user.age = 20
+    # user.email = "joe@doe.com"
+    # user.repository.create.execute
+    # p user.id
+    # p user.name
+    # p user.email
+    # p "done"
+    p Models::User.repository
+      .where("users", {"id", :eq, 10})
+      .or("users", {"name", :eq, "joe"})
+      .select("users", "id", "name")
+      .execute
     render plain: "foo"
   end
 
