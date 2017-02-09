@@ -59,7 +59,7 @@ class Shepherd::Initializers::Main
   #starts server, passing args from corresponding configuration class
   def start_server : Nil
 
-    puts "server is listening on:"
+    puts "Shepherd is ready to serve:"
     puts "port: #{Shepherd::Configuration::Server.instance.get_port}"
     puts "host: #{Shepherd::Configuration::Server.instance.get_host}"
 

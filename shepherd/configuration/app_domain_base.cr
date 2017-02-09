@@ -10,7 +10,6 @@ class Shepherd::Configuration::AppDomainBase
 
   macro inherited
     INSTANCE = new
-
   end
 
 

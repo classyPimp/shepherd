@@ -1,14 +1,12 @@
 class Config::Env::Development < Shepherd::Configuration::AppDomainBase
 
 
+
   def set_config
 
-    # server do
-    #
-    #
-    #
-    # end
+    database do
 
+    end
 
     security do
 

@@ -56,11 +56,11 @@ class Shepherd::Server::Handlers::Main
     # end
 
     #TODO: think of better way of handling exceptions
-    rescue ex : Exception
-      context.response.status_code = 500
-      context.response.print ex
-      context.response.print ex.backtrace
-      context.response.print ex.callstack
+    # rescue ex : Exception
+    #   context.response.status_code = 500
+    #   context.response.print ex
+    #   context.response.print ex.backtrace
+    #   context.response.print ex.callstack
   end
 
 

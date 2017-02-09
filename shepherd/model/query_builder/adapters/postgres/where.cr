@@ -34,6 +34,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
   @from_part_string_builder : String::Builder
   @from_part_string_builder = String::Builder.new
 
+  @limit_clause : String?
 
   def initialize
     @from_part_string_builder << " FROM"
@@ -43,12 +44,12 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
   def select(prefix : String, *args : String)
     @select_called = true
 
-    @select_part_string_builder << " ("
+    @select_part_string_builder << ' '
     args.each do |arg|
       @select_part_string_builder << prefix << '.' << arg << ", "
     end
     @select_part_string_builder.back(2)
-    @select_part_string_builder << ')'
+    @select_part_string_builder << ' '
 
     self
   end
@@ -101,6 +102,11 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
     self
   end
 
+  def limit(value : Int32)
+    @limit_clause = " LIMIT #{value}"
+  end
+
+
   def insert_where_and_or_nil : Nil
     if !@where_called
       @where_part_string_builder << "WHERE "
@@ -117,20 +123,26 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
       query << finalize_select_part
       query << finalize_from_part
       query << finalize_where_part
+      if @limit_clause
+        query << @limit_clause
+      end
     end
     resulting_query.to_s
   end
 
   def execute
     DATABASE_CONNECTION.query(build_query, @statement_args) do |result_set|
-      result_set.each do ||
-        p result_set.read(String)
-      end
+      T.parse_db_result_set(result_set)
     end
   end
 
   def to_sql_string
     build_query
+  end
+
+  def puts_sql_query_and_statements
+    puts build_query
+    puts @statement_args
   end
 
 
@@ -141,7 +153,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
 
 
   def default_select
-    @select_part_string_builder << " *"
+    " *"
   end
 
 
@@ -160,7 +172,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
 
   def finalize_from_part
     unless @from_called
-      @from_part_string_builder << " #{T.table_name} "
+      @from_part_string_builder << " #{self.default_from} "
     end
     @from_part_string_builder.to_s
   end

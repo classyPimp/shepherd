@@ -21,6 +21,7 @@ class App::Controllers::Test < Shepherd::Controller::Base
 
   end
 
+
   def index : Nil
 
     # user = Models::User.new
@@ -32,12 +33,15 @@ class App::Controllers::Test < Shepherd::Controller::Base
     # p user.name
     # p user.email
     # p "done"
-    p Models::User.repository
-      .where("users", {"id", :eq, 10})
+
+    collection = Models::User.repository
+      .where("users", {"id", :eq, 1})
+      .or("users", {"id", :eq, 2})
       .or("users", {"name", :eq, "joe"})
-      .select("users", "id", "name")
-      .execute
-    render plain: "foo"
+      .puts_sql_query_and_statements
+
+    render plain: Shepherd::Configuration::Security::INSTANCE.get_secret_key
+
   end
 
 
