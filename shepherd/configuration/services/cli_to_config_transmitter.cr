@@ -23,7 +23,7 @@ class Shepherd::Configuration::Services::CliToConfigTransmitter
       end
     end
 
-    Shepherd::Configuration::Server::INSTANCE.set_options from: options_to_pass
+    Shepherd::Configuration::Server.set_options_by_hash(options_to_pass)
 
   end
 

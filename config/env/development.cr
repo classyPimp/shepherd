@@ -2,15 +2,11 @@ class Config::Env::Development < Shepherd::Configuration::AppDomainBase
 
 
 
-  def set_config
+  def self.set_config
 
-    database do
+    self.security do |config|
 
-    end
-
-    security do
-
-      set secret_key: "asdasdasdasdasd"
+      config.secret_key = "asdasdasdasdasd"
 
     end
 

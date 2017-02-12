@@ -18,11 +18,12 @@ class Shepherd::Initializers::Main
   def bootstrap : Nil
 
     parse_and_set_cli_options
+    run_env_config
     set_server_handlers
     draw_routes
     initialize_server_with_handlers
+    connect_database
     start_server
-
   end
 
 
@@ -33,6 +34,10 @@ class Shepherd::Initializers::Main
       Shepherd::Configuration::CliParser.instance.options_passed_from_cli
     )
 
+  end
+
+  def run_env_config : Nil
+    Shepherd::Configuration::General.env.not_nil!.set_config
   end
 
 
@@ -49,8 +54,8 @@ class Shepherd::Initializers::Main
 
   def initialize_server_with_handlers : HTTP::Server
     @server = HTTP::Server.new(
-      Shepherd::Configuration::Server.instance.get_host,
-      Shepherd::Configuration::Server.instance.get_port,
+      Shepherd::Configuration::Server.host.not_nil!,
+      Shepherd::Configuration::Server.port.not_nil!,
       Shepherd::Server::HandlersSetup.instance.handlers.not_nil!
     )
   end
@@ -60,12 +65,17 @@ class Shepherd::Initializers::Main
   def start_server : Nil
 
     puts "Shepherd is ready to serve:"
-    puts "port: #{Shepherd::Configuration::Server.instance.get_port}"
-    puts "host: #{Shepherd::Configuration::Server.instance.get_host}"
+    puts "port: #{Shepherd::Configuration::Server.port}"
+    puts "host: #{Shepherd::Configuration::Server.host}"
 
     @server.as(HTTP::Server).listen
 
   end
 
+
+  def connect_database
+    connection = DB.open(Shepherd::Configuration::Database.connection_address.not_nil!)
+    Shepherd::Database::Connection.set_connection(connection)
+  end
 
 end

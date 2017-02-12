@@ -8,7 +8,7 @@ class Shepherd::Configuration::General < Shepherd::Configuration::Base
 
   define_config_options({
 
-    env: { type: String, default: "development", required: true}
+    env: { type: Shepherd::Configuration::AppDomainBase, default: Config::Env::Development.new, required: true}
 
   })
 

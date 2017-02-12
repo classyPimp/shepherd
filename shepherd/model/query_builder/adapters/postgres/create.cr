@@ -30,8 +30,9 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(T)
 
     @query_to_execute = build_query
     @values_to_insert = get_values_to_insert
-
-    returning_id = DATABASE_CONNECTION.scalar(@query_to_execute.not_nil!, @values_to_insert).as(Int32)
+    p @query_to_execute
+    p @values_to_insert
+    returning_id = Shepherd::Database::Connection.get.scalar(@query_to_execute.not_nil!, @values_to_insert).as(Int32)
 
     if returning_id
       @owner_model.id = returning_id
@@ -48,7 +49,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(T)
     @query_to_execute = build_query
     @values_to_insert = get_values_to_insert
 
-    DATABASE_CONNECTION.transaction do |transaction|
+    Shepherd::Database::Connection.get.transaction do |transaction|
 
       returning_id = transaction.connection.scalar(@query_to_execute.as(String), @values_to_insert).as(Int32)
 

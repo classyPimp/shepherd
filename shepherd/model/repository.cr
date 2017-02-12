@@ -1,5 +1,7 @@
 class Shepherd::Model::Repository( T )
 
+  @owner_model : T?
+
   def initialize(@owner_model : T)
 
   end
@@ -9,19 +11,23 @@ class Shepherd::Model::Repository( T )
   end
 
   def create
-    Shepherd::Model::QueryBuilder::Adapters::Postgres::Create( T ).new(@owner_model)
+    DATABASE_ADAPTER::Create( T ).new(@owner_model.as(T))
   end
 
   def create(*field_names) : Shepherd::QueryBuilder::Interfaces::Create
-    Shepherd::Model::QueryBuilder::Adapters::Postgres::Create( T ).new(@owner_model, *field_names)
+    DATABASE_ADAPTER::Create( T ).new(@owner_model.as(T), *field_names)
   end
 
   def where(prefix, *args)
-    Shepherd::Model::QueryBuilder::Adapters::Postgres::Where( T ).new.where(prefix, *args)
+    DATABASE_ADAPTER::Where( T ).new.where(prefix, *args)
   end
 
-  def join(*args)
-    Shepherd::Model::QueryBuilder::Adapters::Postgres::Where( T ).new.join(args)
+  def inner_join(&block : T::JoinBuilder -> Shepherd::Model::JoinBuilderBase::Interface)
+    DATABASE_ADAPTER::Where( T ).new.inner_join(&block)
+  end
+
+  def init_where
+    DATABASE_ADAPTER::Where(T).new
   end
 
 end

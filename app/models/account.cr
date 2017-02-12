@@ -1,19 +1,18 @@
-class Models::User < Shepherd::Model::Base
+class Model::Account < Shepherd::Model::Base
 
   database_mapping(
-    { table_name: "users",
+    { table_name: "accounts",
       column_names: {
         "id": {type: Int32, primary_key: true},
         "name": {type: String},
-        "email": {type: String}
+        "user_id": {type: Int32}
       }
     }
   )
 
-
   associations_config(
     {
-      has_many: [:accounts, {class_name: Model::Account, local_key: "id", foreign_key: "user_id"}]#,
+      has_many: [:users, {class_name: Models::User, local_key: "id", foreign_key: "account_id"}]#,
       # has_one: [:account, {class: Account, local_key: "id", foreign_key: "user_id"}],
       # belongs_to: [:account, {class: Account, local_key: "account_id", foreign_key: "id"}],
       # has_one_through: [:account, {through: :account}],
@@ -21,15 +20,5 @@ class Models::User < Shepherd::Model::Base
       # belongs_to: [:forum, {as: :commentable}]
     }
   )
-
-  # User.new.accounts(load: true)
-  # User.new.accounts(loaded?: true)
-  # User.new.accounts(reload: true)
-  # User.new.account(get_repository: true) do |acc|
-  #   acc.eager_load(&.commenters)
-  # end
-  # User.new.account(get_repository: true, no_assign: true) do |acc|
-  #   acc.where("foo", :eq, "bar").execute
-  # end
 
 end

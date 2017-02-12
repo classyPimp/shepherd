@@ -10,6 +10,9 @@ class Shepherd::Model::Collection(T)
     @collection = Array(T).new
   end
 
+  def [](index : Int32) : T
+    @collection[index]
+  end
 
   def each(&block : T -> _)
     @collection.each(&block)
@@ -19,5 +22,5 @@ class Shepherd::Model::Collection(T)
     @collection << value
     @collection
   end
-  
+
 end

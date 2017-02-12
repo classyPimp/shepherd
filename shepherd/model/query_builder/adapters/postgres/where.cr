@@ -1,7 +1,8 @@
 require "../../interfaces/where"
 
 class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
-
+  #TODO SHOULD CLOSE STRINGBUILDERS OF UNCALLED PARTS ON FINALIZATION OR IN EXECUTE
+  #TODO WRITE INTERFACE WITH ALL NECESSARY ABSTRACT METHODS
   include Shepherd::Model::QueryBuilder::Interfaces::Where
 
   @statement_args : Array(DB::Any)
@@ -25,6 +26,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
   @from_called : Bool
   @from_called = false
 
+  #TODO REFACTOR WITH LAZY INITIALIZED GETTERS
   @where_part_string_builder : String::Builder
   @where_part_string_builder = String::Builder.new
 
@@ -34,13 +36,28 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
   @from_part_string_builder : String::Builder
   @from_part_string_builder = String::Builder.new
 
+  @join_called : Bool
+  @join_called = false
+
+  @join_part_string_builder : String::Builder
+  @join_part_string_builder = String::Builder.new
+
   @limit_clause : String?
+
+  @eager_load_called : Bool
+  @eager_load_called = false
+
+  @eager_loaders : Array(Shepherd::Model::EagerLoaderInterface)?
+  def eager_loaders
+    @eager_loaders ||= Array(Shepherd::Model::EagerLoaderInterface).new(10)
+  end
 
   def initialize
     @from_part_string_builder << " FROM"
     @select_part_string_builder << "SELECT"
   end
 
+  #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
   def select(prefix : String, *args : String)
     @select_called = true
 
@@ -54,6 +71,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
     self
   end
 
+
   def from(table_name)
     @from_called = true
     @from_part_string_builder << table_name << ' '
@@ -64,9 +82,11 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
   #Tuple(String, Symbol, DB::Any)
   def where(raw_query : String, *args : DB::Any)
     @where_part_string_builder << raw_query << ' '
+    #TODO: should push args to where args
     self
   end
 
+  #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
   def where(prefix, *args)
 
     insert_where_and_or_nil
@@ -94,6 +114,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
 
   end
 
+  #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
   def or(prefix, *args)
     @or_called = true
     @where_part_string_builder << "OR "
@@ -101,6 +122,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
     @or_called = false
     self
   end
+
 
   def limit(value : Int32)
     @limit_clause = " LIMIT #{value}"
@@ -122,6 +144,9 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
     resulting_query = String.build do |query|
       query << finalize_select_part
       query << finalize_from_part
+      if @join_called
+        query << finalize_join_part
+      end
       query << finalize_where_part
       if @limit_clause
         query << @limit_clause
@@ -131,38 +156,53 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
   end
 
   def execute
-    DATABASE_CONNECTION.query(build_query, @statement_args) do |result_set|
+
+    query = build_query
+    #TODO: Should print to logger when logger will be implemented
+    p query
+    p @statement_args
+
+    collection_to_return = Shepherd::Database::Connection.get.query(query, @statement_args) do |result_set|
       T.parse_db_result_set(result_set)
     end
+
+    if @eager_load_called
+      eager_loaders.each do |eager_loader|
+        eager_loader.as(T::EagerLoader).resolve(collection_to_return.as(Shepherd::Model::Collection(T)))
+      end
+    end
+
+    collection_to_return
+
   end
 
   def to_sql_string
     build_query
   end
 
-  def puts_sql_query_and_statements
+  def puts_sql_query_and_statements : Nil
     puts build_query
     puts @statement_args
   end
 
 
-  def place_holder
+  def place_holder : Int32
     @pg_placeholder_counter += 1
     @pg_placeholder_counter
   end
 
 
-  def default_select
+  def default_select : String
     " *"
   end
 
 
-  def default_from
-    T.table_name.as(String)
+  def default_from : String
+    T.table_name#.as(String)
   end
 
 
-  def finalize_select_part
+  def finalize_select_part : String
     unless @select_called
       @select_part_string_builder << default_select
     end
@@ -170,18 +210,69 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
   end
 
 
-  def finalize_from_part
+  def finalize_from_part : String
     unless @from_called
       @from_part_string_builder << " #{self.default_from} "
     end
     @from_part_string_builder.to_s
   end
 
-  def finalize_where_part
+  def finalize_join_part : String
+    @join_part_string_builder.to_s
+  end
+
+  def finalize_where_part : String
     @where_statement_args.each do |arg|
       @statement_args << arg
     end
     @where_part_string_builder.to_s
   end
+
+  def inner_join(&block) : self
+    @join_called = true
+    join_builder = yield T::JoinBuilder.new(Shepherd::Model::JoinBuilderBase::JoinTypesEnum::Inner)
+    statements = join_builder.get_statements
+    statements.each do |statement|
+      case statement[:join_type]
+      when Shepherd::Model::JoinBuilderBase::JoinTypesEnum::Inner
+        @join_part_string_builder << " INNER JOIN "
+      end
+      @join_part_string_builder << "#{statement[:class_to_join].table_name.as(String)} on #{statement[:parent].table_name.as(String)}.#{statement[:parent_column]} = #{statement[:class_to_join].table_name.as(String)}.#{statement[:class_to_join_column]} "
+    end
+    self
+  end
+
+  def eager_load(&block : T::EagerLoader -> Nil)
+    @eager_load_called = true
+
+    eager_loader = T::EagerLoader.new
+    eager_loaders << eager_loader
+
+    yield eager_loader
+
+    self
+  end
+
+  def where_in(prefix, duplet : Tuple(String, Array))
+
+    insert_where_and_or_nil
+    @where_called = true
+
+    @where_part_string_builder << '('
+    @where_part_string_builder << "#{prefix}.#{duplet[0]} in ("
+
+    duplet[1].each do |val|
+      @where_part_string_builder << val
+      @where_part_string_builder << ", "
+    end
+
+    @where_part_string_builder.back(2)
+    @where_part_string_builder << ")"
+    @where_part_string_builder << ") "
+
+    self
+
+  end
+
 
 end

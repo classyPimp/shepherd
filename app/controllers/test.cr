@@ -25,22 +25,34 @@ class App::Controllers::Test < Shepherd::Controller::Base
   def index : Nil
 
     # user = Models::User.new
-    # user.name = "Joe"
-    # user.age = 20
-    # user.email = "joe@doe.com"
+    # user.name = "joe"
     # user.repository.create.execute
     # p user.id
     # p user.name
     # p user.email
     # p "done"
-
+    # Shepherd::Database::Connection.get.query("select * from users where id in ($1)", [[1,2,3,4]]) do |rs|
+    #
+    # end
     collection = Models::User.repository
+      .inner_join(&.accounts)
       .where("users", {"id", :eq, 1})
       .or("users", {"id", :eq, 2})
       .or("users", {"name", :eq, "joe"})
-      .puts_sql_query_and_statements
+      .eager_load(&.accounts)
+      .where("users", {"name", :eq, "FOOO"})
+      .execute
 
-    render plain: Shepherd::Configuration::Security::INSTANCE.get_secret_key
+    # user_id = collection[0].id
+    #
+    # acc = Model::Account.new
+    # acc.user_id = user_id
+    # acc.name = "accname"
+    # acc.repository.create.execute
+    #
+    p collection[0].accounts
+
+    render plain: Shepherd::Configuration::Security.secret_key
 
   end
 

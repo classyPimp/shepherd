@@ -49,6 +49,7 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
 #
 
     macro macro_set_table_name(table_name)
+      @@table_name : String
       @@table_name = "{{table_name.id}}"
     end
 

@@ -11,59 +11,53 @@ class Shepherd::Configuration::Base
   #     port: {type: String, default: "0.0.0.0"}
   #   }
   # )
-  macro define_config_options(options)
+    SUPPORTED_OPTIONS = [] of Symbol
+    macro define_config_options(options)
+      {% for name, option in options %}
 
-     SUPPORTED_OPTIONS = [] of Symbol
+        handle_option({{name}}, {{option.id}})
 
-     {% for config_name, config_options in options %}
-
-       {% raise "no type given" if (config_options[:type] == nil) %}
-
-
-       def set_{{config_name.id}}(value : {{ config_options[:type] }})
-
-         @{{config_name.id}} = value
-
-       end
+      {%end%}
 
 
-       def get_{{ config_name.id }} {% if config_options[:type] %} : {{ config_options[:type] }} {% end %}
-
-         {% if config_options[:required] && !config_options[:default] %}
-             raise "config should be set" unless @{{config_name.id}}
+       def self.set_option_by_sym(symbol_name : Symbol, value_to_set )
+         case symbol_name
+         {% for name in options.keys %}
+         when :{{ name.id }}
+           self.{{name.id}} = (value_to_set.as({{options[name][:type]}}))
          {% end %}
-
-         @{{config_name.id}} {% if config_options[:default] %} || {{ config_options[:default] }} {% end %}
-
+         else
+           raise "no option"
+         end
        end
 
-       SUPPORTED_OPTIONS << :{{config_name}}
-
-     {% end %}
-
-
-
-
-     def set_option(symbol_name : Symbol, value_to_set )
-       case symbol_name
-       {% for name in options.keys %}
-       when :{{ name.id }}
-         set_{{name.id}}(value_to_set.as({{options[name][:type]}}))
-       {% end %}
-       else
-         raise "no option"
-       end
-     end
-
-  end
-
-
-
-  def set_options(from hash)
-    hash.each do |option_name, value|
-      set_option(option_name, value)
     end
-  end
 
+    macro handle_option(name, option)
+      SUPPORTED_OPTIONS << :{{name.id}}
+      @@{{name.id}} : {{option[:type].id}}?
+
+      {%if option[:default]%}
+        @@{{name.id}} = {{option[:default]}}
+      {%end%}
+
+      def self.{{name.id}} : {{option[:type].id}}?
+        {% if option[:required] %}
+          raise "required option was not set" if @@{{name.id}}.nil?
+        {%end%}
+        @@{{name.id}}
+      end
+
+        def self.{{name.id}}=(value : {{option[:type]}})
+          @@{{name.id}} = value
+        end
+
+    end
+
+    def self.set_options_by_hash(options)
+      options.each do |key, value|
+        self.set_option_by_sym(key, value)
+      end
+    end
 
 end

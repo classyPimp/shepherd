@@ -8,46 +8,22 @@
 # this way config is always typed, and incapsulated.
 class Shepherd::Configuration::AppDomainBase
 
-  macro inherited
-    INSTANCE = new
+  def self.server(&block)
+    yield Shepherd::Configuration::Server
   end
 
+  def self.security(&block)
 
-  def self.instance
-    INSTANCE
-  end
+    yield Shepherd::Configuration::Security
 
-
-  @current_config_class = ""
-
-  macro server(&block)
-
-    @current_config_class = "Shepherd::Configuration::Server::INSTANCE"
-
-    {{block.body}}
-
-  end
-
-  macro security(&block)
-
-    @current_config_class = "Shepherd::Configuration::Security::INSTANCE"
-
-    {{block.body}}
-
-  end
-
-  macro constantize_config_class(name)
-    {{ name.id }}
-  end
-
-  macro set(pair)
-    {% for key, val in pair  %}
-      constantize_config_class(@current_config_class).set_{{ key.id }}({{pair}})
-    {% end %}
   end
 
   def self.set_config : Nil
 
+  end
+
+  def set_config
+    self.class.set_config
   end
 
 end
