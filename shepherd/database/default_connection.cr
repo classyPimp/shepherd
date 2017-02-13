@@ -1,4 +1,4 @@
-class Shepherd::Database::Connection
+class Shepherd::Database::DefaultConnection
 
   @@connection : DB::Database?
 

@@ -1,6 +1,6 @@
 require "../../interfaces/where"
 
-class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
+class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT, T)
   #TODO SHOULD CLOSE STRINGBUILDERS OF UNCALLED PARTS ON FINALIZATION OR IN EXECUTE
   #TODO WRITE INTERFACE WITH ALL NECESSARY ABSTRACT METHODS
   include Shepherd::Model::QueryBuilder::Interfaces::Where
@@ -87,9 +87,19 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
   end
 
   #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
-  def where(prefix, *args)
+  def where(prefix : (String | Shepherd::Model::Base.class | Nil), *args : Tuple(String, Symbol, DB::Any))
+
+    case prefix
+    when String
+      nil
+    when Shepherd::Model::Base.class
+      prefix = prefix.table_name
+    when nil
+      prefix = T.table_name
+    end
 
     insert_where_and_or_nil
+
     @where_called = true
 
     @where_part_string_builder << '('
@@ -98,9 +108,9 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
       when :eq
         @where_part_string_builder << ' ' << prefix << '.'
         @where_part_string_builder << triple[0] << " = $#{place_holder} "
-      when :in
-        @where_part_string_builder << ' ' << prefix << '.'
-        @where_part_string_builder << triple[0] << " in ($#{place_holder}) "
+      # when :in
+      #   @where_part_string_builder << ' ' << prefix << '.'
+      #   @where_part_string_builder << triple[0] << " in ($#{place_holder}) "
       end
       @where_part_string_builder << "AND"
 
@@ -108,6 +118,40 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
 
     end
     @where_part_string_builder.back(4)
+    @where_part_string_builder << ") "
+
+    self
+
+  end
+  #Overload for handling IN statement (for future any other that supplies array)
+  def where(prefix, triplet : Tuple(String, Symbol, Array))
+    case prefix
+    when String
+      nil
+    when Shepherd::Model::Base.class
+      prefix = prefix.table_name
+    when nil
+      prefix = T.table_name
+    end
+
+    insert_where_and_or_nil
+    @where_called = true
+
+    @where_part_string_builder << '('
+    case triplet[1]
+    when :in
+      @where_part_string_builder << "#{prefix}.#{triplet[0]} in ("
+
+      triplet[2].each do |val|
+        @where_part_string_builder << val
+        @where_part_string_builder << ", "
+      end
+
+      @where_part_string_builder.back(2)
+      @where_part_string_builder << ")"
+    else
+      raise "unsupported operator #{triplet[1]} in where statement"
+    end
     @where_part_string_builder << ") "
 
     self
@@ -126,6 +170,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
 
   def limit(value : Int32)
     @limit_clause = " LIMIT #{value}"
+    self
   end
 
 
@@ -162,7 +207,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
     p query
     p @statement_args
 
-    collection_to_return = Shepherd::Database::Connection.get.query(query, @statement_args) do |result_set|
+    collection_to_return = ConnectionGetterT.get.query(query, @statement_args) do |result_set|
       T.parse_db_result_set(result_set)
     end
 
@@ -251,27 +296,6 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(T)
     yield eager_loader
 
     self
-  end
-
-  def where_in(prefix, duplet : Tuple(String, Array))
-
-    insert_where_and_or_nil
-    @where_called = true
-
-    @where_part_string_builder << '('
-    @where_part_string_builder << "#{prefix}.#{duplet[0]} in ("
-
-    duplet[1].each do |val|
-      @where_part_string_builder << val
-      @where_part_string_builder << ", "
-    end
-
-    @where_part_string_builder.back(2)
-    @where_part_string_builder << ")"
-    @where_part_string_builder << ") "
-
-    self
-
   end
 
 

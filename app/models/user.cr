@@ -1,4 +1,4 @@
-class Models::User < Shepherd::Model::Base
+class Models::User < Model::AppDomainBase
 
   database_mapping(
     { table_name: "users",
@@ -13,10 +13,10 @@ class Models::User < Shepherd::Model::Base
 
   associations_config(
     {
-      has_many: [:accounts, {class_name: Model::Account, local_key: "id", foreign_key: "user_id"}]#,
-      # has_one: [:account, {class: Account, local_key: "id", foreign_key: "user_id"}],
+      has_many: [:accounts, {class_name: Models::Account, local_key: "id", foreign_key: "user_id"}],
+      has_one: [:account, {class_name: Models::Account, local_key: "id", foreign_key: "user_id"}]#,
+      #has_one: [:user, {class_name: Models::User, through: :account}],
       # belongs_to: [:account, {class: Account, local_key: "account_id", foreign_key: "id"}],
-      # has_one_through: [:account, {through: :account}],
       # has_many: [:comments, {polymorphic: true, as: :commentable, polymorphic_id: :commentable_id}]
       # belongs_to: [:forum, {as: :commentable}]
     }

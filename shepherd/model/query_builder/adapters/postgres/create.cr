@@ -1,6 +1,6 @@
 require "../../interfaces/create"
 
-class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(T)
+class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(ConnectionGetterT, T)
 
   include Shepherd::Model::QueryBuilder::Interfaces::Create
 
@@ -32,7 +32,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(T)
     @values_to_insert = get_values_to_insert
     p @query_to_execute
     p @values_to_insert
-    returning_id = Shepherd::Database::Connection.get.scalar(@query_to_execute.not_nil!, @values_to_insert).as(Int32)
+    returning_id = ConnectionGetterT.get.scalar(@query_to_execute.not_nil!, @values_to_insert).as(Int32)
 
     if returning_id
       @owner_model.id = returning_id
@@ -49,7 +49,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(T)
     @query_to_execute = build_query
     @values_to_insert = get_values_to_insert
 
-    Shepherd::Database::Connection.get.transaction do |transaction|
+    ConnectionGetterT.get.transaction do |transaction|
 
       returning_id = transaction.connection.scalar(@query_to_execute.as(String), @values_to_insert).as(Int32)
 

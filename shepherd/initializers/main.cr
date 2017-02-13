@@ -75,7 +75,7 @@ class Shepherd::Initializers::Main
 
   def connect_database
     connection = DB.open(Shepherd::Configuration::Database.connection_address.not_nil!)
-    Shepherd::Database::Connection.set_connection(connection)
+    Shepherd::Database::DefaultConnection.set_connection(connection)
   end
 
 end

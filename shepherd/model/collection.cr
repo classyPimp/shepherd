@@ -1,6 +1,7 @@
 class Shepherd::Model::Collection(T)
 
   include Enumerable(T)
+  include Indexable(T)
 
   property :collection
   @collection : Array(T)
@@ -12,6 +13,10 @@ class Shepherd::Model::Collection(T)
 
   def [](index : Int32) : T
     @collection[index]
+  end
+
+  def []?(index : Int32) : T?
+    @collection[index]?
   end
 
   def each(&block : T -> _)

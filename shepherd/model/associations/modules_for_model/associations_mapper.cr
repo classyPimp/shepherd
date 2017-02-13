@@ -5,9 +5,15 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
     macro associations_config(config)
 
       {% for association_name, options in config %}
-        {%if association_name == :has_many%}
+        {% if association_name == :has_many %}
           set_has_many({{options.id}})
-        {%end%}
+        # {%elsif association_name == :has_one && options[:through]}
+        #   set_has_one_through({{options.id}})
+        {% elsif association_name == :has_one %}
+          set_has_one({{options.id}})
+        {% elsif association_name == :belongs_to %}
+          set_belongs_to({{options.id}})
+        {% end %}
       {% end %}
 
       generate_join_builder({{config}})
@@ -15,6 +21,11 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
       generate_eager_load_builder({{config}})
 
     end
+
+
+
+
+
 
 
     ##HASMANY
@@ -97,6 +108,241 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
 
 
+
+
+
+
+
+    #HAS ONE
+    macro set_has_one(options)
+      {% property_name = options[0] %}
+      {% config = options[1] %}
+      {% class_name = config[:class_name] %}
+
+      #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
+
+      macro_set_getter_for_has_one({{property_name}}, {{class_name}}, {{config}})
+
+      macro_set_getter_for_has_one_overload_load_false({{property_name}}, {{class_name}}, {{config}})
+
+      macro_set_getter_for_has_one_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}})
+
+      macro_set_setter_for_has_one({{property_name}}, {{class_name}}, {{config}})
+
+    end
+
+    macro macro_set_getter_for_has_one(property_name, class_name, config)
+
+      @{{property_name.id}} : {{class_name}}?
+
+      def {{property_name.id}}
+        @{{property_name.id}} ||= (
+          if @{{ config[:local_key].id }}
+            {{class_name}}.repository.where(
+              {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+            ).execute[0]?
+          else
+            nil
+          end
+        )
+      end
+
+    end
+
+
+    macro macro_set_getter_for_has_one_overload_load_false(property_name, class_name, config)
+
+      def {{property_name.id}}(*, load : Bool)
+        @{{property_name.id}} ||= (
+            nil
+        )
+      end
+
+    end
+
+
+    macro macro_set_getter_for_has_one_overload_to_yield_repository(property_name, class_name, config)
+
+      def {{property_name.id}}(yield_repository : Bool, &block)
+        @{{property_name.id}} ||= (
+          yield ({{class_name.id}}.repository.where(
+            {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+          ))
+        )
+      end
+
+    end
+
+
+    macro macro_set_setter_for_has_one(property_name, class_name, config)
+
+      def {{property_name.id}}=(value : {{class_name.id}}?)
+        @{{property_name.id}} = value
+      end
+
+    end
+    #END HAS ONE
+
+
+
+
+
+
+    #BELONGS_TO
+    macro set_belongs_to(options)
+      {% property_name = options[0] %}
+      {% config = options[1] %}
+      {% class_name = config[:class_name] %}
+
+      #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
+
+      macro_set_getter_for_belongs_to({{property_name}}, {{class_name}}, {{config}})
+
+      macro_set_getter_for_belongs_to_overload_load_false({{property_name}}, {{class_name}}, {{config}})
+
+      macro_set_getter_for_belongs_to_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}})
+
+      macro_set_setter_for_belongs_to({{property_name}}, {{class_name}}, {{config}})
+
+    end
+
+    macro macro_set_getter_for_belongs_to(property_name, class_name, config)
+
+      @{{property_name.id}} : {{class_name}}?
+
+      def {{property_name.id}}
+        @{{property_name.id}} ||= (
+          if @{{ config[:local_key].id }}
+            {{class_name}}.repository.where(
+              {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+            ).execute[0]?
+          else
+            nil
+          end
+        )
+      end
+
+    end
+
+
+    macro macro_set_getter_for_belongs_to_overload_load_false(property_name, class_name, config)
+
+      def {{property_name.id}}(*, load : Bool)
+        @{{property_name.id}} ||= (
+            nil
+        )
+      end
+
+    end
+
+
+    macro macro_set_getter_for_belongs_to_overload_to_yield_repository(property_name, class_name, config)
+
+      def {{property_name.id}}(yield_repository : Bool, &block)
+        @{{property_name.id}} ||= (
+          yield ({{class_name.id}}.repository.where(
+            {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+          ))
+        )
+      end
+
+    end
+
+
+    macro macro_set_setter_for_belongs_to(property_name, class_name, config)
+
+      def {{property_name.id}}=(value : {{class_name.id}}?)
+        @{{property_name.id}} = value
+      end
+
+    end
+
+    #END BELONGS_TO
+
+
+
+
+
+    #HAS_ONE_THROUGH
+    # macro set_has_one_through(options)
+    #   {% property_name = options[0] %}
+    #   {% config = options[1] %}
+    #   {% class_name = config[:class_name] %}
+    #   {% through_class = config[:through] %}
+    #
+    #   #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
+    #
+    #   macro_set_getter_for_has_one_through({{property_name}}, {{class_name}}, {{config}})
+    #
+    #   macro_set_getter_for_has_one_through_overload_load_false({{property_name}}, {{class_name}}, {{config}})
+    #
+    #   macro_set_getter_for_has_one_through_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}})
+    #
+    #   macro_set_setter_for_has_one_through({{property_name}}, {{class_name}}, {{config}})
+    #
+    # end
+    #
+    # macro macro_set_getter_for_has_one_through(property_name, class_name, config)
+    #
+    #   @{{property_name.id}} : {{class_name}}?
+    #
+    #   def {{property_name.id}}
+    #     @{{property_name.id}} ||= (
+    #       if @{{ config[:local_key].id }}
+    #         {{class_name}}.repository.where(
+    #           {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+    #         ).execute[0]?
+    #       else
+    #         nil
+    #       end
+    #     )
+    #   end
+    #
+    # end
+    #
+    #
+    # macro macro_set_getter_for_has_one_through_overload_load_false(property_name, class_name, config)
+    #
+    #   def {{property_name.id}}(*, load : Bool)
+    #     @{{property_name.id}} ||= (
+    #         nil
+    #     )
+    #   end
+    #
+    # end
+    #
+    #
+    # macro macro_set_getter_for_has_one_through_overload_to_yield_repository(property_name, class_name, config)
+    #
+    #   def {{property_name.id}}(yield_repository : Bool, &block)
+    #     @{{property_name.id}} ||= (
+    #       yield ({{class_name.id}}.repository.where(
+    #         {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+    #       ))
+    #     )
+    #   end
+    #
+    # end
+    #
+    #
+    # macro macro_set_setter_for_has_one_through(property_name, class_name, config)
+    #
+    #   def {{property_name.id}}=(value : {{class_name.id}}?)
+    #     @{{property_name.id}} = value
+    #   end
+    #
+    # end
+
+
+
+    #END HAS_ONE_THROUGH
+
+
+
+
+
+
+
     #JOIN BUILDER CONFIG GENERATOR
     macro generate_join_builder(config)
 
@@ -157,12 +403,20 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
                 mapper_by_local_key[model.id.as(Int32)] = model
               end
 
-              child_collection = repository.not_nil!.where_in({{class_name}}.table_name, { {{foreign_key}}, array_of_local_keys }).execute
+              unless array_of_local_keys.empty?
+                child_collection = repository.not_nil!.where({{class_name}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).execute
 
-              child_collection.each do |child|
-                {% if association_name == :has_many %}
-                  mapper_by_local_key[child.user_id].accounts(load: false) << child
-                {% end %}
+                child_collection.each do |child|
+
+                  {% if association_name == :has_many %}
+                    mapper_by_local_key[child.{{foreign_key.id}}].{{options[0].id}}(load: false) << child
+                  {% elsif association_name == :has_one %}
+                    mapper_by_local_key[child.{{foreign_key.id}}].{{options[0].id}} = child
+                  {% elsif association_name == :belongs_to %}
+                    mapper_by_local_key[child.{{foreign_key.id}}].{{options[0].id}} = child
+                  {% end %}
+
+                end
               end
 
             end
