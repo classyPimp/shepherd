@@ -7,6 +7,7 @@ class Shepherd::Model::Base
   @@table_name : String
   @@table_name = ""
 
+
   include Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing::Macros
   extend Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing::ClassMethods
 

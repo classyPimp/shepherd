@@ -2,78 +2,49 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
   module Macros
 
-    macro associations_config(config)
+    macro associations_config(&block)
+      HACKY_ASSOCIATION_CONFIG_PROXY = [] of String
 
-      {% for association_name, options in config %}
-        {% if association_name == :has_many %}
-          set_has_many({{options.id}})
-        # {%elsif association_name == :has_one && options[:through]}
-        #   set_has_one_through({{options.id}})
-        {% elsif association_name == :has_one %}
-          set_has_one({{options.id}})
-        {% elsif association_name == :belongs_to %}
-          set_belongs_to({{options.id}})
-        {% end %}
-      {% end %}
+      {{block.body}}
 
-      generate_join_builder({{config}})
-
-      generate_eager_load_builder({{config}})
-
-    end
-
-
-
-
-
-
-
-    ##HASMANY
-    macro set_has_many(options)
-
-      {% property_name = options[0] %}
-      {% config = options[1] %}
-      {% class_name = config[:class_name] %}
-
-      #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_getter_for_has_many({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_getter_for_has_many_overload_load_false({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_getter_for_has_many_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_setter_for_has_many({{property_name}}, {{class_name}}, {{config}})
+      generate_join_builder_class
+      generate_eager_loader_class
 
 
     end
 
 
-    macro macro_set_property_for_has_many(property_name, class_name, config)
+    macro has_many(property_name, *, class_name, local_key = "id", foreign_key = false)
 
-      #@{{property_name.id}} : Shepherd::Model::Collection({{class_name}})
+      {% foreign_key = foreign_key ? foreign_key : "#{@type.name.split("::")[-1].downcase}_id" %}
+
+      {% HACKY_ASSOCIATION_CONFIG_PROXY << "{ type: :has_many, property_name: #{property_name}, class_name: #{class_name}, local_key: #{local_key}, foreign_key: #{foreign_key} }" %}
+
+      {{ property_name.stringify.upcase[1..-1].id }}_ASSOCIATION_CONFIG = {class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}} }
+
+      set_getter_for_has_many({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
+      set_getter_for_has_many_overload_load_false({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
+      set_getter_for_has_many_overload_to_yield_repository({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
+      set_setter_for_has_many({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
 
     end
 
 
-    macro macro_set_getter_for_has_many(property_name, class_name, config)
-
+    macro set_getter_for_has_many(property_name, *, class_name, local_key, foreign_key)
       def {{property_name.id}}
         @{{property_name.id}} ||= (
-          if @{{ config[:local_key].id }}
+          if @{{ local_key.id }}
             {{class_name}}.repository.where(
-            {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+              {{class_name}}.table_name, { {{ foreign_key }}, :eq, self.{{ local_key.id }} }
             ).execute
           else
             Shepherd::Model::Collection({{class_name}}).new
           end
         ).as(Shepherd::Model::Collection({{class_name}}))
       end
-
     end
 
-
-    macro macro_set_getter_for_has_many_overload_load_false(property_name, class_name, config)
+    macro set_getter_for_has_many_overload_load_false(property_name, *, class_name, local_key, foreign_key)
 
       def {{property_name.id}}(*, load : Bool)
         @{{property_name.id}} ||= (
@@ -83,28 +54,25 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
     end
 
-
-    macro macro_set_getter_for_has_many_overload_to_yield_repository(property_name, class_name, config)
+    macro set_getter_for_has_many_overload_to_yield_repository(property_name, *, class_name, local_key, foreign_key)
 
       def {{property_name.id}}(yield_repository : Bool, &block)
         @{{property_name.id}} ||= (
           yield ({{class_name.id}}.repository.where(
-            {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+            {{class_name.id}}.table_name, { {{ foreign_key }}, :eq, self.{{ local_key.id }} }
           ))
         )
       end
 
     end
 
-
-    macro macro_set_setter_for_has_many(property_name, class_name, config)
+    macro set_setter_for_has_many(property_name, *, class_name, local_key, foreign_key)
 
       def {{property_name.id}}=(value : Shepherd::Model::Collection({{class_name.id}}))
         @{{property_name.id}} = value
       end
 
     end
-    #END HASMANY
 
 
 
@@ -112,34 +80,29 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
 
 
+    macro has_one(property_name, *, class_name, local_key, foreign_key = false)
+      {% foreign_key = foreign_key ? foreign_key : "#{@type.name.split("::")[-1].downcase}_id" %}
 
-    #HAS ONE
-    macro set_has_one(options)
-      {% property_name = options[0] %}
-      {% config = options[1] %}
-      {% class_name = config[:class_name] %}
+      {% HACKY_ASSOCIATION_CONFIG_PROXY << "{ type: :has_many, property_name: #{property_name}, class_name: #{class_name}, local_key: #{local_key}, foreign_key: #{foreign_key} }" %}
 
-      #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
+      {{  property_name.stringify.upcase[1..-1].id  }}_ASSOCIATION_CONFIG = {class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}} }
 
-      macro_set_getter_for_has_one({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_getter_for_has_one_overload_load_false({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_getter_for_has_one_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_setter_for_has_one({{property_name}}, {{class_name}}, {{config}})
-
+      set_getter_for_has_one({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
+      set_getter_for_has_one_overload_load_false({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
+      set_getter_for_has_one_overload_to_yield_repository({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
+      set_setter_for_has_one({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
     end
 
-    macro macro_set_getter_for_has_one(property_name, class_name, config)
+
+    macro set_getter_for_has_one(property_name, *, class_name, local_key, foreign_key)
 
       @{{property_name.id}} : {{class_name}}?
 
       def {{property_name.id}}
         @{{property_name.id}} ||= (
-          if @{{ config[:local_key].id }}
+          if @{{ local_key.id }}
             {{class_name}}.repository.where(
-              {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+              {{class_name}}.table_name, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
             ).execute[0]?
           else
             nil
@@ -150,7 +113,7 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
     end
 
 
-    macro macro_set_getter_for_has_one_overload_load_false(property_name, class_name, config)
+    macro set_getter_for_has_one_overload_load_false(property_name, *, class_name, local_key, foreign_key)
 
       def {{property_name.id}}(*, load : Bool)
         @{{property_name.id}} ||= (
@@ -161,12 +124,12 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
     end
 
 
-    macro macro_set_getter_for_has_one_overload_to_yield_repository(property_name, class_name, config)
+    macro set_getter_for_has_one_overload_to_yield_repository(property_name, *, class_name, local_key, foreign_key)
 
       def {{property_name.id}}(yield_repository : Bool, &block)
         @{{property_name.id}} ||= (
           yield ({{class_name.id}}.repository.where(
-            {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+            {{class_name.id}}.table_name, { {{foreign_key }}, :eq, self.{{ local_key.id }} }
           ))
         )
       end
@@ -174,82 +137,7 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
     end
 
 
-    macro macro_set_setter_for_has_one(property_name, class_name, config)
-
-      def {{property_name.id}}=(value : {{class_name.id}}?)
-        @{{property_name.id}} = value
-      end
-
-    end
-    #END HAS ONE
-
-
-
-
-
-
-    #BELONGS_TO
-    macro set_belongs_to(options)
-      {% property_name = options[0] %}
-      {% config = options[1] %}
-      {% class_name = config[:class_name] %}
-
-      #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_getter_for_belongs_to({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_getter_for_belongs_to_overload_load_false({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_getter_for_belongs_to_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}})
-
-      macro_set_setter_for_belongs_to({{property_name}}, {{class_name}}, {{config}})
-
-    end
-
-    macro macro_set_getter_for_belongs_to(property_name, class_name, config)
-
-      @{{property_name.id}} : {{class_name}}?
-
-      def {{property_name.id}}
-        @{{property_name.id}} ||= (
-          if @{{ config[:local_key].id }}
-            {{class_name}}.repository.where(
-              {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
-            ).execute[0]?
-          else
-            nil
-          end
-        )
-      end
-
-    end
-
-
-    macro macro_set_getter_for_belongs_to_overload_load_false(property_name, class_name, config)
-
-      def {{property_name.id}}(*, load : Bool)
-        @{{property_name.id}} ||= (
-            nil
-        )
-      end
-
-    end
-
-
-    macro macro_set_getter_for_belongs_to_overload_to_yield_repository(property_name, class_name, config)
-
-      def {{property_name.id}}(yield_repository : Bool, &block)
-        @{{property_name.id}} ||= (
-          yield ({{class_name.id}}.repository.where(
-            {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
-          ))
-        )
-      end
-
-    end
-
-
-    macro macro_set_setter_for_belongs_to(property_name, class_name, config)
+    macro set_setter_for_has_one(property_name, *, class_name, local_key, foreign_key)
 
       def {{property_name.id}}=(value : {{class_name.id}}?)
         @{{property_name.id}} = value
@@ -257,85 +145,6 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
     end
 
-    #END BELONGS_TO
-
-
-
-
-
-    #HAS_ONE_THROUGH
-    # macro set_has_one_through(options)
-    #   {% property_name = options[0] %}
-    #   {% config = options[1] %}
-    #   {% class_name = config[:class_name] %}
-    #   {% through_class = config[:through] %}
-    #
-    #   #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
-    #
-    #   macro_set_getter_for_has_one_through({{property_name}}, {{class_name}}, {{config}})
-    #
-    #   macro_set_getter_for_has_one_through_overload_load_false({{property_name}}, {{class_name}}, {{config}})
-    #
-    #   macro_set_getter_for_has_one_through_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}})
-    #
-    #   macro_set_setter_for_has_one_through({{property_name}}, {{class_name}}, {{config}})
-    #
-    # end
-    #
-    # macro macro_set_getter_for_has_one_through(property_name, class_name, config)
-    #
-    #   @{{property_name.id}} : {{class_name}}?
-    #
-    #   def {{property_name.id}}
-    #     @{{property_name.id}} ||= (
-    #       if @{{ config[:local_key].id }}
-    #         {{class_name}}.repository.where(
-    #           {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
-    #         ).execute[0]?
-    #       else
-    #         nil
-    #       end
-    #     )
-    #   end
-    #
-    # end
-    #
-    #
-    # macro macro_set_getter_for_has_one_through_overload_load_false(property_name, class_name, config)
-    #
-    #   def {{property_name.id}}(*, load : Bool)
-    #     @{{property_name.id}} ||= (
-    #         nil
-    #     )
-    #   end
-    #
-    # end
-    #
-    #
-    # macro macro_set_getter_for_has_one_through_overload_to_yield_repository(property_name, class_name, config)
-    #
-    #   def {{property_name.id}}(yield_repository : Bool, &block)
-    #     @{{property_name.id}} ||= (
-    #       yield ({{class_name.id}}.repository.where(
-    #         {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
-    #       ))
-    #     )
-    #   end
-    #
-    # end
-    #
-    #
-    # macro macro_set_setter_for_has_one_through(property_name, class_name, config)
-    #
-    #   def {{property_name.id}}=(value : {{class_name.id}}?)
-    #     @{{property_name.id}} = value
-    #   end
-    #
-    # end
-
-
-
-    #END HAS_ONE_THROUGH
 
 
 
@@ -343,38 +152,58 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
 
 
-    #JOIN BUILDER CONFIG GENERATOR
-    macro generate_join_builder(config)
+    macro generate_join_builder_class
 
       class JoinBuilder < Shepherd::Model::JoinBuilderBase
 
         include Shepherd::Model::JoinBuilderBase::Interface
-
-        {% for association_name, options in config %}
-          {% class_name = options[1][:class_name] %}
-          {% local_key = options[1][:local_key] %}
-          {% foreign_key = options[1][:foreign_key] %}
-
-          def {{options[0].id}}
-
-            @join_statements << {
-              join_type: @join_type,
-              parent: {{@type}},
-              class_to_join: {{class_name}},
-              parent_column: {{local_key}},
-              class_to_join_column: {{foreign_key}}
-            }
-
-            {{ class_name }}::JoinBuilder.new(@join_type, @join_statements)
-
-          end
+        {% for config in HACKY_ASSOCIATION_CONFIG_PROXY %}
+          {{@type}}.dispatch_to_patcher_of_join_builder({{config.id}})
         {% end %}
 
       end
 
     end
 
-    macro generate_eager_load_builder(config)
+    macro dispatch_to_patcher_of_join_builder(config)
+      {% if config[:type] == :has_many %}
+        {{@type}}.patch_join_builder_for_has_many({{config}})
+      {% elsif config[:type] == :has_one %}
+        {{@type}}.patch_join_builder_for_has_one({{config}})
+      {% end %}
+    end
+
+    macro patch_join_builder_for_has_many(config)
+      def {{config[:property_name].id}}
+        @join_statements << {
+          join_type: @join_type,
+          parent: {{@type}},
+          class_to_join: {{config[:class_name].id}},
+          parent_column: {{config[:local_key]}},
+          class_to_join_column: {{config[:foreign_key]}}
+        }
+        {{ config[:class_name] }}::JoinBuilder.new(@join_type, @join_statements)
+      end
+    end
+
+    macro patch_join_builder_for_has_one(config)
+      def {{config[:property_name].id}}
+        @join_statements << {
+          join_type: @join_type,
+          parent: {{@type}},
+          class_to_join: {{config[:class_name].id}},
+          parent_column: {{config[:local_key]}},
+          class_to_join_column: {{config[:foreign_key]}}
+        }
+        {{ config[:class_name] }}::JoinBuilder.new(@join_type, @join_statements)
+      end
+    end
+
+
+
+
+
+    macro generate_eager_loader_class
 
       class EagerLoader
         include Shepherd::Model::EagerLoaderInterface
@@ -384,49 +213,81 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
           @resolver_proc.not_nil!.call(collection)
         end
 
-        {% for association_name, options in config %}
-          {% class_name = options[1][:class_name] %}
-          {% local_key = options[1][:local_key] %}
-          {% foreign_key = options[1][:foreign_key] %}
-
-          def {{options[0].id}}
-
-            repository = {{class_name}}.repository.init_where
-
-            @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
-              #TODO: ideally should read types of fields out of results of db_mapping macro
-              mapper_by_local_key = {} of Int32 => {{@type}}
-              array_of_local_keys = [] of Int32
-
-              collection.each do |model|
-                array_of_local_keys << model.id.as(Int32)
-                mapper_by_local_key[model.id.as(Int32)] = model
-              end
-
-              unless array_of_local_keys.empty?
-                child_collection = repository.not_nil!.where({{class_name}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).execute
-
-                child_collection.each do |child|
-
-                  {% if association_name == :has_many %}
-                    mapper_by_local_key[child.{{foreign_key.id}}].{{options[0].id}}(load: false) << child
-                  {% elsif association_name == :has_one %}
-                    mapper_by_local_key[child.{{foreign_key.id}}].{{options[0].id}} = child
-                  {% elsif association_name == :belongs_to %}
-                    mapper_by_local_key[child.{{foreign_key.id}}].{{options[0].id}} = child
-                  {% end %}
-
-                end
-              end
-
-            end
-
-            repository
-
-          end
+        {% for config in HACKY_ASSOCIATION_CONFIG_PROXY %}
+          {{@type}}.dispatch_to_patcher_of_eager_loader({{config.id}})
         {% end %}
 
       end
+
+    end
+
+
+    macro dispatch_to_patcher_of_eager_loader(config)
+
+      {% if config[:type] == :has_many %}
+        {{@type}}.patch_eager_loader_for_has_many({{config}})
+      {% elsif config[:type] == :has_one %}
+        {{@type}}.patch_eager_loader_for_has_one({{config}})
+      {% end %}
+    end
+
+    macro patch_eager_loader_for_has_many(config)
+
+      def {{config[:property_name].id}}
+
+        repository = {{config[:class_name].id}}.repository.init_where
+
+        @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+          #TODO: ideally should read types of fields out of results of db_mapping macro
+          mapper_by_local_key = {} of Int32 => {{@type}} #TODO: !!!!!!!!!KEY TYPE SHOULD BE GOTTEN FROM DATABASE MAPPING CONFIG!
+          array_of_local_keys = [] of Int32
+
+          collection.each do |model|
+            array_of_local_keys << model.id.as(Int32)
+            mapper_by_local_key[model.id.as(Int32)] = model
+          end
+
+          unless array_of_local_keys.empty?
+            child_collection = repository.not_nil!.where({{config[:class_name].id}}.table_name, { {{config[:foreign_key]}}, :in, array_of_local_keys }).execute
+
+            child_collection.each do |child|
+              mapper_by_local_key[child.{{config[:foreign_key].id}}].{{config[:property_name].id}}(load: false) << child
+            end
+
+          end
+
+        end
+
+        repository
+
+      end
+    end
+
+    macro patch_eager_loader_for_has_one(config)
+      repository = {{config[:class_name].id}}.repository.init_where
+
+      @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+        #TODO: ideally should read types of fields out of results of db_mapping macro
+        mapper_by_local_key = {} of Int32 => {{@type}} #TODO: !!!!!!!!!KEY TYPE SHOULD BE GOTTEN FROM DATABASE MAPPING CONFIG!
+        array_of_local_keys = [] of Int32
+
+        collection.each do |model|
+          array_of_local_keys << model.id.as(Int32)
+          mapper_by_local_key[model.id.as(Int32)] = model
+        end
+
+        unless array_of_local_keys.empty?
+          child_collection = repository.not_nil!.where({{config[:class_name].id}}.table_name, { {{config[:foreign_key]}}, :in, array_of_local_keys }).execute
+
+          child_collection.each do |child|
+            mapper_by_local_key[child.{{config[:foreign_key].id}}].{{config[:property_name].id}} = child
+          end
+
+        end
+
+      end
+
+      repository
 
     end
 

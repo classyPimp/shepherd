@@ -10,15 +10,18 @@ class Models::Account < Model::AppDomainBase
     }
   )
 
-  associations_config(
-    {
-      has_many: [:users, {class_name: Models::User, local_key: "id", foreign_key: "account_id"}],
-      belongs_to: [:user, {class_name: Models::User, local_key: "user_id", foreign_key: "id"}]#,
-      # has_one: [:account, {class: Account, local_key: "id", foreign_key: "user_id"}],
-      # has_one_through: [:account, {through: :account}],
-      # has_many: [:comments, {polymorphic: true, as: :commentable, polymorphic_id: :commentable_id}]
-      # belongs_to: [:forum, {as: :commentable}]
-    }
-  )
+  associations_config do
+    has_one :user, class_name: Models::User, local_key: "user_id", foreign_key: "id"
+  end
+  # associations_config(
+  #   {
+  #     has_many: [:users, {class_name: Models::User, local_key: "id", foreign_key: "account_id"}],
+  #     belongs_to: [:user, {class_name: Models::User, local_key: "user_id", foreign_key: "id"}]#,
+  #     # has_one: [:account, {class: Account, local_key: "id", foreign_key: "user_id"}],
+  #     # has_one_through: [:account, {through: :account}],
+  #     # has_many: [:comments, {polymorphic: true, as: :commentable, polymorphic_id: :commentable_id}]
+  #     # belongs_to: [:forum, {as: :commentable}]
+  #   }
+  # )
 
 end

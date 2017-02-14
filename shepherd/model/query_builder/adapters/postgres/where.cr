@@ -58,7 +58,16 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   end
 
   #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
-  def select(prefix : String, *args : String)
+  def select(prefix : (String | Shepherd::Model::Base.class | Nil), *args : String)
+    case prefix
+    when String
+      nil
+    when Shepherd::Model::Base.class
+      prefix = prefix.table_name
+    when nil
+      prefix = T.table_name
+    end
+
     @select_called = true
 
     @select_part_string_builder << ' '

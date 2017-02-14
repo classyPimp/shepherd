@@ -38,20 +38,13 @@ class App::Controllers::Test < Shepherd::Controller::Base
       .where("users", {"id", :in, [1,2,3,4]})
       .or(Models::User, {"id", :eq, 2})
       .or(Models::User, {"name", :eq, "joe"})
+      .eager_load(&.accounts.select(Models::Account, "id", "user_id"))
       .execute
 
-    account = collection[0].account
-
-    p account.not_nil!.user
-    #GC.free(Pointer(Void).new(collection.object_id))
-    # user_id = collection[0].id
-    #
-    # acc = Model::Account.new
-    # acc.user_id = user_id
-    # acc.name = "accname"
-    # acc.repository.create.execute
-    #
-
+    user = collection[0]#.user
+    p user
+    p user.account
+    #p user.account.user
 
     render plain: Shepherd::Configuration::Security.secret_key
 
