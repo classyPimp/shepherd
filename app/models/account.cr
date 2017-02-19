@@ -1,5 +1,9 @@
 class Models::Account < Model::AppDomainBase
 
+  def self.table_name : String
+    @@table_name
+  end
+
   database_mapping(
     { table_name: "accounts",
       column_names: {
@@ -10,9 +14,9 @@ class Models::Account < Model::AppDomainBase
     }
   )
 
-  associations_config do
-    has_one :user, class_name: Models::User, local_key: "user_id", foreign_key: "id"
-  end
+  associations_config({
+    user: {type: :belongs_to, class_name: Models::User, local_key: "user_id", foreign_key: "id"}
+  })
   # associations_config(
   #   {
   #     has_many: [:users, {class_name: Models::User, local_key: "id", foreign_key: "account_id"}],

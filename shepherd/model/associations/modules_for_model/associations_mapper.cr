@@ -2,297 +2,1008 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
   module Macros
 
-    macro associations_config(&block)
-      HACKY_ASSOCIATION_CONFIG_PROXY = [] of String
+      macro associations_config(aggregate_config)
 
-      {{block.body}}
+        {% for property_name, config in aggregate_config %}
 
-      generate_join_builder_class
-      generate_eager_loader_class
+          {% type = config[:type] %}
+          {% if type == :has_many && config[:through] && config[:polymorphic_through]%}
+            set_has_many_through_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+          {% elsif type == :has_many && config[:as] %}
+            set_has_many_as_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+          {% elsif type == :has_many && config[:through] != nil %}
+            set_has_many_through({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+          {% elsif type == :has_many %}
+            set_has_many({{property_name}}, {{config}}, {{aggregate_config}})
+          {% elsif type == :has_one %}
+            set_has_one({{property_name}}, {{config}}, {{aggregate_config}})
+          {% elsif type == :belongs_to && config[:polymorphic] %}
+            set_belongs_to_polymorphic({{property_name}}, {{config}}, {{aggregate_config}})
+          {% elsif type == :belongs_to %}
+            set_belongs_to({{property_name}}, {{config}}, {{aggregate_config}})
+          {% end %}
 
-
-    end
-
-
-    macro has_many(property_name, *, class_name, local_key = "id", foreign_key = false)
-
-      {% foreign_key = foreign_key ? foreign_key : "#{@type.name.split("::")[-1].downcase}_id" %}
-
-      {% HACKY_ASSOCIATION_CONFIG_PROXY << "{ type: :has_many, property_name: #{property_name}, class_name: #{class_name}, local_key: #{local_key}, foreign_key: #{foreign_key} }" %}
-
-      {{ property_name.stringify.upcase[1..-1].id }}_ASSOCIATION_CONFIG = {class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}} }
-
-      set_getter_for_has_many({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
-      set_getter_for_has_many_overload_load_false({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
-      set_getter_for_has_many_overload_to_yield_repository({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
-      set_setter_for_has_many({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
-
-    end
-
-
-    macro set_getter_for_has_many(property_name, *, class_name, local_key, foreign_key)
-      def {{property_name.id}}
-        @{{property_name.id}} ||= (
-          if @{{ local_key.id }}
-            {{class_name}}.repository.where(
-              {{class_name}}.table_name, { {{ foreign_key }}, :eq, self.{{ local_key.id }} }
-            ).execute
-          else
-            Shepherd::Model::Collection({{class_name}}).new
-          end
-        ).as(Shepherd::Model::Collection({{class_name}}))
-      end
-    end
-
-    macro set_getter_for_has_many_overload_load_false(property_name, *, class_name, local_key, foreign_key)
-
-      def {{property_name.id}}(*, load : Bool)
-        @{{property_name.id}} ||= (
-            Shepherd::Model::Collection({{class_name}}).new
-        ).as(Shepherd::Model::Collection({{class_name}}))
-      end
-
-    end
-
-    macro set_getter_for_has_many_overload_to_yield_repository(property_name, *, class_name, local_key, foreign_key)
-
-      def {{property_name.id}}(yield_repository : Bool, &block)
-        @{{property_name.id}} ||= (
-          yield ({{class_name.id}}.repository.where(
-            {{class_name.id}}.table_name, { {{ foreign_key }}, :eq, self.{{ local_key.id }} }
-          ))
-        )
-      end
-
-    end
-
-    macro set_setter_for_has_many(property_name, *, class_name, local_key, foreign_key)
-
-      def {{property_name.id}}=(value : Shepherd::Model::Collection({{class_name.id}}))
-        @{{property_name.id}} = value
-      end
-
-    end
-
-
-
-
-
-
-
-    macro has_one(property_name, *, class_name, local_key, foreign_key = false)
-      {% foreign_key = foreign_key ? foreign_key : "#{@type.name.split("::")[-1].downcase}_id" %}
-
-      {% HACKY_ASSOCIATION_CONFIG_PROXY << "{ type: :has_many, property_name: #{property_name}, class_name: #{class_name}, local_key: #{local_key}, foreign_key: #{foreign_key} }" %}
-
-      {{  property_name.stringify.upcase[1..-1].id  }}_ASSOCIATION_CONFIG = {class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}} }
-
-      set_getter_for_has_one({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
-      set_getter_for_has_one_overload_load_false({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
-      set_getter_for_has_one_overload_to_yield_repository({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
-      set_setter_for_has_one({{property_name}}, class_name: {{class_name}}, local_key: {{local_key}}, foreign_key: {{foreign_key}})
-    end
-
-
-    macro set_getter_for_has_one(property_name, *, class_name, local_key, foreign_key)
-
-      @{{property_name.id}} : {{class_name}}?
-
-      def {{property_name.id}}
-        @{{property_name.id}} ||= (
-          if @{{ local_key.id }}
-            {{class_name}}.repository.where(
-              {{class_name}}.table_name, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
-            ).execute[0]?
-          else
-            nil
-          end
-        )
-      end
-
-    end
-
-
-    macro set_getter_for_has_one_overload_load_false(property_name, *, class_name, local_key, foreign_key)
-
-      def {{property_name.id}}(*, load : Bool)
-        @{{property_name.id}} ||= (
-            nil
-        )
-      end
-
-    end
-
-
-    macro set_getter_for_has_one_overload_to_yield_repository(property_name, *, class_name, local_key, foreign_key)
-
-      def {{property_name.id}}(yield_repository : Bool, &block)
-        @{{property_name.id}} ||= (
-          yield ({{class_name.id}}.repository.where(
-            {{class_name.id}}.table_name, { {{foreign_key }}, :eq, self.{{ local_key.id }} }
-          ))
-        )
-      end
-
-    end
-
-
-    macro set_setter_for_has_one(property_name, *, class_name, local_key, foreign_key)
-
-      def {{property_name.id}}=(value : {{class_name.id}}?)
-        @{{property_name.id}} = value
-      end
-
-    end
-
-
-
-
-
-
-
-
-    macro generate_join_builder_class
-
-      class JoinBuilder < Shepherd::Model::JoinBuilderBase
-
-        include Shepherd::Model::JoinBuilderBase::Interface
-        {% for config in HACKY_ASSOCIATION_CONFIG_PROXY %}
-          {{@type}}.dispatch_to_patcher_of_join_builder({{config.id}})
         {% end %}
 
-      end
-
-    end
-
-    macro dispatch_to_patcher_of_join_builder(config)
-      {% if config[:type] == :has_many %}
-        {{@type}}.patch_join_builder_for_has_many({{config}})
-      {% elsif config[:type] == :has_one %}
-        {{@type}}.patch_join_builder_for_has_one({{config}})
-      {% end %}
-    end
-
-    macro patch_join_builder_for_has_many(config)
-      def {{config[:property_name].id}}
-        @join_statements << {
-          join_type: @join_type,
-          parent: {{@type}},
-          class_to_join: {{config[:class_name].id}},
-          parent_column: {{config[:local_key]}},
-          class_to_join_column: {{config[:foreign_key]}}
-        }
-        {{ config[:class_name] }}::JoinBuilder.new(@join_type, @join_statements)
-      end
-    end
-
-    macro patch_join_builder_for_has_one(config)
-      def {{config[:property_name].id}}
-        @join_statements << {
-          join_type: @join_type,
-          parent: {{@type}},
-          class_to_join: {{config[:class_name].id}},
-          parent_column: {{config[:local_key]}},
-          class_to_join_column: {{config[:foreign_key]}}
-        }
-        {{ config[:class_name] }}::JoinBuilder.new(@join_type, @join_statements)
-      end
-    end
-
-
-
-
-
-    macro generate_eager_loader_class
-
-      class EagerLoader
-        include Shepherd::Model::EagerLoaderInterface
-        @resolver_proc : Proc(Shepherd::Model::Collection({{@type}}), Nil)?
-
-        def resolve(collection : Shepherd::Model::Collection({{@type}}))
-          @resolver_proc.not_nil!.call(collection)
-        end
-
-        {% for config in HACKY_ASSOCIATION_CONFIG_PROXY %}
-          {{@type}}.dispatch_to_patcher_of_eager_loader({{config.id}})
-        {% end %}
+        generate_join_builder({{aggregate_config}})
+        generate_eager_load_builder({{aggregate_config}})
 
       end
 
-    end
 
 
-    macro dispatch_to_patcher_of_eager_loader(config)
 
-      {% if config[:type] == :has_many %}
-        {{@type}}.patch_eager_loader_for_has_many({{config}})
-      {% elsif config[:type] == :has_one %}
-        {{@type}}.patch_eager_loader_for_has_one({{config}})
-      {% end %}
-    end
 
-    macro patch_eager_loader_for_has_many(config)
 
-      def {{config[:property_name].id}}
 
-        repository = {{config[:class_name].id}}.repository.init_where
 
-        @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
-          #TODO: ideally should read types of fields out of results of db_mapping macro
-          mapper_by_local_key = {} of Int32 => {{@type}} #TODO: !!!!!!!!!KEY TYPE SHOULD BE GOTTEN FROM DATABASE MAPPING CONFIG!
-          array_of_local_keys = [] of Int32
+      ##HASMANY AS POLYMORHIC
+      macro set_has_many_as_polymorphic(property_name, config, aggregate_config)
 
-          collection.each do |model|
-            array_of_local_keys << model.id.as(Int32)
-            mapper_by_local_key[model.id.as(Int32)] = model
-          end
+        {% class_name = config[:class_name] %}
 
-          unless array_of_local_keys.empty?
-            child_collection = repository.not_nil!.where({{config[:class_name].id}}.table_name, { {{config[:foreign_key]}}, :in, array_of_local_keys }).execute
+        #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
 
-            child_collection.each do |child|
-              mapper_by_local_key[child.{{config[:foreign_key].id}}].{{config[:property_name].id}}(load: false) << child
+        macro_set_getter_for_has_many_as_polymorphic({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_many_as_polymorphic_overload_load_false({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_many_as_polymorphic_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_setter_for_has_many_as_polymorphic({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+
+      end
+
+
+      macro macro_set_property_for_has_many_as_polymorphic(property_name, class_name, config, aggregate_config)
+
+        #@{{property_name.id}} : Shepherd::Model::Collection({{class_name}})
+
+      end
+
+
+      macro macro_set_getter_for_has_many_as_polymorphic(property_name, class_name, config, aggregate_config)
+        def {{property_name.id}}
+          @{{property_name.id}} ||= (
+            if @{{ config[:local_key].id }}
+              {{class_name}}.repository.where(
+              {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }}, { "{{ config[:foreign_polymorphic_field].id }}", :eq, {{config[:as]}} } }
+              ).execute
+            else
+              Shepherd::Model::Collection({{class_name}}).new
             end
-
-          end
-
-        end
-
-        repository
-
-      end
-    end
-
-    macro patch_eager_loader_for_has_one(config)
-      repository = {{config[:class_name].id}}.repository.init_where
-
-      @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
-        #TODO: ideally should read types of fields out of results of db_mapping macro
-        mapper_by_local_key = {} of Int32 => {{@type}} #TODO: !!!!!!!!!KEY TYPE SHOULD BE GOTTEN FROM DATABASE MAPPING CONFIG!
-        array_of_local_keys = [] of Int32
-
-        collection.each do |model|
-          array_of_local_keys << model.id.as(Int32)
-          mapper_by_local_key[model.id.as(Int32)] = model
-        end
-
-        unless array_of_local_keys.empty?
-          child_collection = repository.not_nil!.where({{config[:class_name].id}}.table_name, { {{config[:foreign_key]}}, :in, array_of_local_keys }).execute
-
-          child_collection.each do |child|
-            mapper_by_local_key[child.{{config[:foreign_key].id}}].{{config[:property_name].id}} = child
-          end
-
+          ).as(Shepherd::Model::Collection({{class_name}}))
         end
 
       end
 
-      repository
+
+      macro macro_set_getter_for_has_many_as_polymorphic_overload_load_false(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(*, load : Bool)
+          @{{property_name.id}} ||= (
+              Shepherd::Model::Collection({{class_name}}).new
+          ).as(Shepherd::Model::Collection({{class_name}}))
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_many_as_polymorphic_overload_to_yield_repository(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(yield_repository : Bool, &block)
+          @{{property_name.id}} ||= (
+            yield ({{class_name.id}}.repository.where(
+              {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }}, { "{{ config[:foreign_polymorphic_field].id }}", :eq, {{config[:as]}} } }
+            ))
+          )
+        end
+
+      end
+
+
+      macro macro_set_setter_for_has_many_as_polymorphic(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}=(value : Shepherd::Model::Collection({{class_name.id}}))
+          @{{property_name.id}} = value
+        end
+
+      end
+      #END HASMANY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      #HASMANY THROUGH POLYMORPHIC
+      macro set_has_many_through_polymorphic(property_name, config, aggregate_config)
+
+        {% class_name = config[:class_name] %}
+
+        macro_set_getter_for_has_many_through_polymorphic({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_many_through_polymorphic_overload_load_false({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_many_through_polymorphic_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_setter_for_has_many_through_polymorphic({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+
+      end
+
+
+      macro macro_set_property_for_has_many_through_polymorphic(property_name, class_name, config, aggregate_config)
+
+        #@{{property_name.id}} : Shepherd::Model::Collection({{class_name}})
+
+      end
+
+
+      macro macro_set_getter_for_has_many_through_polymorphic(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}
+          {% if config[:this_joined_as] %}
+            extra_join_criteria = " AND #{{{aggregate_config[config[:through][:class_name]]}}}.#{{{aggregate_config[config[:through][:polymorphic_type_field]]}}} = '#{config[:this_joined_as]}' "
+          {%else%}
+            extra_join_criteria = nil
+          {% end %}
+
+          @{{property_name.id}} ||= (
+            if @{{ aggregate_config[config[:through]][:local_key].id }}
+              {{class_name}}.repository
+                .inner_join(&.{{config[:this_joined_through].id}}(extra_join_criteria: extra_join_criteria))
+                .where({{aggregate_config[config[:through]][:class_name]}}, { {{aggregate_config[config[:through]][:foreign_key]}}, :eq, self.{{aggregate_config[config[:through]][:local_key].id}} })
+                .execute
+            else
+              Shepherd::Model::Collection({{class_name}}).new
+            end
+          ).as(Shepherd::Model::Collection({{class_name}}))
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_many_through_polymorphic_overload_load_false(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(*, load : Bool)
+          @{{property_name.id}} ||= (
+              Shepherd::Model::Collection({{class_name}}).new
+          ).as(Shepherd::Model::Collection({{class_name}}))
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_many_through_polymorphic_overload_to_yield_repository(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(yield_repository : Bool, &block)
+          @{{property_name.id}} ||= (
+            yield ({{class_name.id}}.repository
+              .inner_join(&.{{config[:this_joined_through].id}})
+              .where({{aggregate_config[config[:through]][:class_name]}}, { {{aggregate_config[config[:through]][:foreign_key]}}, :eq, {{aggregate_config[config[:through]][:foreign_key]}} })
+            )
+          )
+        end
+
+      end
+
+
+      macro macro_set_setter_for_has_many_through_polymorphic(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}=(value : Shepherd::Model::Collection({{class_name.id}}))
+          @{{property_name.id}} = value
+        end
+
+      end
+
+
+
+
+
+
+
+
+
+
+
+
+
+      #BELONGS_TO_POLYMORPHIC
+      macro set_belongs_to_polymorphic(property_name, config, aggregate_config)
+
+        macro_set_getter_for_belongs_to_polymorphic({{property_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_belongs_to_polymorphic_overload_load_false({{property_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_belongs_to_polymorphic_overload_to_yield_repository({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+
+        macro_set_setter_for_belongs_to_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+
+      end
+
+      macro macro_set_getter_for_belongs_to_polymorphic(property_name, config, aggregate_config)
+
+        @{{property_name.id}} : ({{config[:supported_types]}})?
+
+        {% separate_types_ary_of_str = config[:supported_types].stringify.split('|').map(&.strip) %}
+
+        def {{property_name.id}}
+          @{{property_name.id}} ||= (
+            if @{{ config[:local_key].id }}
+              case @{{config[:polymorphic_type_field].id}}
+              {% for str_type in separate_types_ary_of_str %}
+              when {{ str_type.split("::")[-1] }}
+                {{str_type.id}}.repository.where(
+                   {{str_type.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+                 ).limit(1).execute[0]?
+              {% end %}
+              end
+            else
+              nil
+            end
+          )
+        end
+
+      end
+
+
+      macro macro_set_getter_for_belongs_to_polymorphic_overload_load_false(property_name, config, aggregate_config)
+
+        def {{property_name.id}}(*, load : Bool)
+          @{{property_name.id}} ||= (
+              nil
+          )
+        end
+
+      end
+
+
+      macro macro_set_getter_for_belongs_to_polymorphic_overload_to_yield_repository(property_name, config, aggregate_config)
+        def {{property_name.id}}(yield_repository : Bool, &block)
+          {% separate_types_ary_of_str = config[:supported_types].stringify.split('|').map(&.strip) %}
+          @{{property_name.id}} ||= (
+            case @{{config[:polymorphic_type_field].id}}
+            {% for str_type in separate_types_ary_of_str %}
+            when {{ str_type.split("::")[-1] }}
+              yield ({{str_type.id}}.repository.where(
+                {{str_type.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+              ).limit(1))
+            {% end %}
+            end
+          )
+        end
+
+      end
+
+
+      macro macro_set_setter_for_belongs_to_polymorphic(property_name, config, aggregate_config)
+
+        def {{property_name.id}}=(value : {{config[:supported_types]}}?)
+          @{{property_name.id}} = value
+        end
+
+      end
+
+      #END BELONGS_TO_POLYMORPHIC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      macro set_has_many_through(property_name, config, aggregate_config)
+
+        {% class_name = config[:class_name] %}
+
+        macro_set_getter_for_has_many_through({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_many_through_overload_load_false({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_many_through_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_setter_for_has_many_through({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+
+      end
+
+
+      macro macro_set_property_for_has_many_through(property_name, class_name, config, aggregate_config)
+
+        #@{{property_name.id}} : Shepherd::Model::Collection({{class_name}})
+
+      end
+
+
+      macro macro_set_getter_for_has_many_through(property_name, class_name, config, aggregate_config)
+        def {{property_name.id}}
+          {% if config[:this_joined_as] %}
+            extra_join_criteria = " AND #{{{aggregate_config[config[:through]][:class_name].id}}.table_name}.{{aggregate_config[config[:through]][:foreign_polymorphic_field].id}} = '{{config[:this_joined_as].id}}' "
+          {% else %}
+            extra_join_criteria = nil
+          {% end %}
+
+          @{{property_name.id}} ||= (
+            if @{{ aggregate_config[config[:through]][:local_key].id }}
+              {{class_name}}.repository
+                .inner_join(&.{{config[:this_joined_through].id}}(extra_join_criteria: extra_join_criteria))
+                .where({{aggregate_config[config[:through]][:class_name]}}, { {{aggregate_config[config[:through]][:foreign_key]}}, :eq, self.{{aggregate_config[config[:through]][:local_key].id}} })
+                .execute
+            else
+              Shepherd::Model::Collection({{class_name}}).new
+            end
+          ).as(Shepherd::Model::Collection({{class_name}}))
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_many_through_overload_load_false(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(*, load : Bool)
+          @{{property_name.id}} ||= (
+              Shepherd::Model::Collection({{class_name}}).new
+          ).as(Shepherd::Model::Collection({{class_name}}))
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_many_through_overload_to_yield_repository(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(yield_repository : Bool, &block)
+          @{{property_name.id}} ||= (
+            yield ({{class_name.id}}.repository
+              .inner_join(&.{{config[:this_joined_through].id}})
+              .where({{aggregate_config[config[:through]][:class_name]}}, { {{aggregate_config[config[:through]][:foreign_key]}}, :eq, {{aggregate_config[config[:through]][:foreign_key]}} })
+            )
+          )
+        end
+
+      end
+
+
+      macro macro_set_setter_for_has_many_through(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}=(value : Shepherd::Model::Collection({{class_name.id}}))
+          @{{property_name.id}} = value
+        end
+
+      end
+
+
+
+
+
+
+
+
+
+
+
+
+      ##HASMANY
+      macro set_has_many(property_name, config, aggregate_config)
+
+        {% class_name = config[:class_name] %}
+
+        #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
+
+        macro_set_getter_for_has_many({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_many_overload_load_false({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_many_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_setter_for_has_many({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+
+      end
+
+
+      macro macro_set_property_for_has_many(property_name, class_name, config, aggregate_config)
+
+        #@{{property_name.id}} : Shepherd::Model::Collection({{class_name}})
+
+      end
+
+
+      macro macro_set_getter_for_has_many(property_name, class_name, config, aggregate_config)
+        def {{property_name.id}}
+          @{{property_name.id}} ||= (
+            if @{{ config[:local_key].id }}
+              {{class_name}}.repository.where(
+              {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+              ).execute
+            else
+              Shepherd::Model::Collection({{class_name}}).new
+            end
+          ).as(Shepherd::Model::Collection({{class_name}}))
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_many_overload_load_false(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(*, load : Bool)
+          @{{property_name.id}} ||= (
+              Shepherd::Model::Collection({{class_name}}).new
+          ).as(Shepherd::Model::Collection({{class_name}}))
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_many_overload_to_yield_repository(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(yield_repository : Bool, &block)
+          @{{property_name.id}} ||= (
+            yield ({{class_name.id}}.repository.where(
+              {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+            ))
+          )
+        end
+
+      end
+
+
+      macro macro_set_setter_for_has_many(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}=(value : Shepherd::Model::Collection({{class_name.id}}))
+          @{{property_name.id}} = value
+        end
+
+      end
+      #END HASMANY
+
+
+
+
+
+
+
+
+
+      #HAS ONE
+      macro set_has_one(property_name, config, aggregate_config)
+
+        {% class_name = config[:class_name] %}
+        #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
+        macro_set_getter_for_has_one({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_one_overload_load_false({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_has_one_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_setter_for_has_one({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+      end
+
+      macro macro_set_getter_for_has_one(property_name, class_name, config, aggregate_config)
+
+        @{{property_name.id}} : {{class_name}}?
+
+        def {{property_name.id}}
+          @{{property_name.id}} ||= (
+            if @{{ config[:local_key].id }}
+              {{class_name}}.repository.where(
+                {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+              ).limit(1).execute[0]?
+            else
+              nil
+            end
+          )
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_one_overload_load_false(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(*, load : Bool)
+          @{{property_name.id}} ||= (
+              nil
+          )
+        end
+
+      end
+
+
+      macro macro_set_getter_for_has_one_overload_to_yield_repository(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(yield_repository : Bool, &block)
+          @{{property_name.id}} ||= (
+            yield ({{class_name.id}}.repository.where(
+              {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+            ).limit(1))
+          )
+        end
+
+      end
+
+
+      macro macro_set_setter_for_has_one(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}=(value : {{class_name.id}}?)
+          @{{property_name.id}} = value
+        end
+
+      end
+      #END HAS ONE
+
+
+
+
+
+
+      #BELONGS_TO
+      macro set_belongs_to(property_name, config, aggregate_config)
+
+        {% class_name = config[:class_name] %}
+
+        #macro_set_property_for_has_many({{property_name}}, {{class_name}}, {{config}})
+
+        macro_set_getter_for_belongs_to({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_belongs_to_overload_load_false({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_getter_for_belongs_to_overload_to_yield_repository({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+        macro_set_setter_for_belongs_to({{property_name}}, {{class_name}}, {{config}}, {{aggregate_config}})
+
+      end
+
+      macro macro_set_getter_for_belongs_to(property_name, class_name, config, aggregate_config)
+
+        @{{property_name.id}} : {{class_name}}?
+
+        def {{property_name.id}}
+          @{{property_name.id}} ||= (
+            if @{{ config[:local_key].id }}
+              {{class_name}}.repository.where(
+                {{class_name}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+              ).limit(1).execute[0]?
+            else
+              nil
+            end
+          )
+        end
+
+      end
+
+
+      macro macro_set_getter_for_belongs_to_overload_load_false(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(*, load : Bool)
+          @{{property_name.id}} ||= (
+              nil
+          )
+        end
+
+      end
+
+
+      macro macro_set_getter_for_belongs_to_overload_to_yield_repository(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}(yield_repository : Bool, &block)
+          @{{property_name.id}} ||= (
+            yield ({{class_name.id}}.repository.where(
+              {{class_name.id}}.table_name, { "{{config[:foreign_key].id}}", :eq, self.{{ config[:local_key].id }} }
+            ).limit(1))
+          )
+        end
+
+      end
+
+
+      macro macro_set_setter_for_belongs_to(property_name, class_name, config, aggregate_config)
+
+        def {{property_name.id}}=(value : {{class_name.id}}?)
+          @{{property_name.id}} = value
+        end
+
+      end
+
+      #END BELONGS_TO
+
+
+
+
+
+
+
+
+      #JOIN BUILDER CONFIG GENERATOR
+      macro generate_join_builder(aggregate_config)
+
+        def self.join_builder
+          JoinBuilder
+        end
+
+        class JoinBuilder < Shepherd::Model::JoinBuilderBase
+
+          include Shepherd::Model::JoinBuilderBase::Interface
+
+          {% for property_name, options in aggregate_config %}
+
+
+            {% if options[:type] == :has_many && options[:through] && options[:polymorphic_through]%}
+
+              def {{property_name.id}}(*, alias_as : String? = {{options[:alias_on_join_as]}}, extra_join_criteria : String? = nil)
+
+                self.inner_join(&.{{options[:through].id}}.inner_join(&.{{options[:source].id}}({{options[:class_name].id}}, alias_as: alias_as, extra_join_criteria: extra_join_criteria)))
+
+              end
+
+            {% elsif options[:type] == :has_many && options[:as] %}
+
+              def {{property_name.id}}(*, alias_as : String? = nil, extra_join_criteria : String? = " AND #{{{options[:class_name].id}}.table_name}.{{options[:foreign_polymorphic_field].id}} = '{{options[:as].id}}' ")
+
+                @join_statements << {
+                  join_type: @join_type,
+                  parent: {{@type}},
+                  class_to_join: {{options[:class_name]}},
+                  parent_column: {{options[:local_key]}},
+                  class_to_join_column: {{options[:foreign_key]}},
+                  alias_as: alias_as,
+                  extra_join_criteria: extra_join_criteria
+                }
+
+                {{options[:class_name]}}::JoinBuilder.new(@join_type, @join_statements)
+
+              end
+
+            {% elsif options[:through] %}
+
+              def {{property_name.id}}(*, alias_as : String? = {{options[:alias_on_join_as]}}, extra_join_criteria : String? = nil)
+
+                self.inner_join(&.{{options[:through].id}}.inner_join(&.{{options[:source].id}}(alias_as: alias_as, extra_join_criteria: extra_join_criteria)))
+
+              end
+
+            {% elsif options[:type] == :belongs_to && options[:polymorphic] %}
+
+              {% supported_types_ary = options[:supported_types].stringify.split('|').map(&.strip) %}
+              {% for type in supported_types_ary %}
+                def {{property_name.id}}(class_to_join : {{type.id}}.class, alias_as : String? = nil, extra_join_criteria : String? = " AND #{{{@type}}.table_name}.{{options[:polymorphic_type_field].id}} = '{{type.split("::")[-1].id}}' ")
+
+                  @join_statements << {
+                    join_type: @join_type,
+                    parent: {{@type}},
+                    class_to_join: {{type.id}},
+                    parent_column: {{options[:local_key]}},
+                    class_to_join_column: {{options[:foreign_key]}},
+                    alias_as: alias_as,
+                    extra_join_criteria: extra_join_criteria
+                  }
+
+                  {{type.id}}::JoinBuilder.new(@join_type, @join_statements)
+
+                end
+              {% end %}
+
+            {% else %}
+
+              {% class_name = options[:class_name] %}
+              {% local_key = options[:local_key] %}
+              {% foreign_key = options[:foreign_key] %}
+
+              def {{property_name.id}}(*, alias_as : String? = {{options[:alias_on_join_as]}}, extra_join_criteria : String? = nil)
+
+                @join_statements << {
+                  join_type: @join_type,
+                  parent: {{@type}},
+                  class_to_join: {{class_name}},
+                  parent_column: {{local_key}},
+                  class_to_join_column: {{foreign_key}},
+                  alias_as: alias_as,
+                  extra_join_criteria: extra_join_criteria
+                }
+
+                {{ class_name }}::JoinBuilder.new(@join_type, @join_statements)
+
+              end
+            {% end %}
+
+          {% end %}
+
+        end
+
+      end
+
+
+
+
+
+
+
+
+
+
+      macro generate_eager_load_builder(aggregate_config)
+
+        class EagerLoader
+          include Shepherd::Model::EagerLoaderInterface
+          @resolver_proc : Proc(Shepherd::Model::Collection({{@type}}), Nil)?
+
+          def resolve(collection : Shepherd::Model::Collection({{@type}}))
+            @resolver_proc.not_nil!.call(collection)
+          end
+
+          {% for property_name, options in aggregate_config %}
+
+            {% type = options[:type] %}
+
+              def {{property_name.id}}
+                {% if type == :has_many && options[:through] && options[:polymorphic_through]%}
+                  #TODO: some better name should be given
+                  {% through_ass_options = aggregate_config[options[:through]] %}
+                  {% local_key_options = DATABASE_MAPPING[:column_names][through_ass_options[:local_key]]%}
+
+                  repository = {{options[:class_name]}}.repository.init_where
+
+                  @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+                    #TODO: ideally should read types of fields out of results of db_mapping macro
+                    mapper_by_local_key = {} of {{local_key_options[:type]}} => {{@type}}
+                    array_of_local_keys = [] of {{local_key_options[:type]}}
+
+                    collection.each do |model|
+                      if model.{{through_ass_options[:local_key].id}} && model.{{options[:polymorphic_type_field].id}} == {{options[:class_name].stringify.split("::")[-1]}}
+                        array_of_local_keys << model.{{through_ass_options[:local_key].id}}.not_nil!
+                        mapper_by_local_key[model.{{through_ass_options[:local_key].id}}.not_nil!] = model
+                      end
+                    end
+
+                    unless array_of_local_keys.empty?
+                      child_collection = repository.not_nil!.inner_join(&.{{options[:this_joined_through].id}})
+                        .where({{through_ass_options[:class_name]}}, { {{through_ass_options[:foreign_key]}}, :in, array_of_local_keys })
+                        where({{through_ass_options[:class_name]}}, { {{options[:polymorphic_type_field]}}, :eq, {{options[:class_name].stringify.split("::")[-1]}} })
+                        .execute
+
+                      child_collection.each do |child|
+                        mapper_by_local_key[child.{{through_ass_options[:foreign_key].id}}].{{property_name.id}}(load: false) << child
+                      end
+                    end
+
+                  end
+
+                  repository
+
+                {% elsif type == :has_many && options[:as] %}
+
+                  {% local_key_options = DATABASE_MAPPING[:column_names][options[:local_key]]%}
+                  repository = {{options[:class_name]}}.repository.init_where
+
+                  @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+                    #TODO: ideally should read types of fields out of results of db_mapping macro
+                    mapper_by_local_key = {} of {{local_key_options[:type]}} => {{@type}}
+                    array_of_local_keys = [] of {{local_key_options[:type]}}
+
+                    collection.each do |model|
+                      if model.{{options[:local_key].id}}
+                        array_of_local_keys << model.{{options[:local_key].id}}.not_nil!
+                        mapper_by_local_key[model.{{options[:local_key].id}}.not_nil!] = model
+                      end
+                    end
+
+                    unless array_of_local_keys.empty?
+                      child_collection = repository.not_nil!
+                        .where({{options[:class_name]}}.table_name, { {{options[:foreign_key]}}, :in, array_of_local_keys })
+                        .where({{options[:class_name]}}.table_name, { {{options[:foreign_polymorphic_field]}}, :eq, {{options[:as]}} })
+                        .execute
+
+                      child_collection.each do |child|
+                        mapper_by_local_key[child.{{options[:foreign_key].id}}].{{property_name.id}}(load: false) << child
+                      end
+                    end
+
+                  end
+
+                  repository
+
+                {% elsif type == :has_many && options[:through] %}
+
+                  {% through_ass_options = aggregate_config[options[:through]] %}
+                  {% local_key_options = DATABASE_MAPPING[:column_names][through_ass_options[:local_key]]%}
+
+                  repository = {{options[:class_name]}}.repository.init_where
+
+                  @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+                    #TODO: ideally should read types of fields out of results of db_mapping macro
+                    mapper_by_local_key = {} of {{local_key_options[:type]}} => {{@type}}
+                    array_of_local_keys = [] of {{local_key_options[:type]}}
+
+                    collection.each do |model|
+                      if model.{{through_ass_options[:local_key].id}}
+                        array_of_local_keys << model.{{through_ass_options[:local_key].id}}.not_nil!
+                        mapper_by_local_key[model.{{through_ass_options[:local_key].id}}.not_nil!] = model
+                      end
+                    end
+
+                    unless array_of_local_keys.empty?
+                      child_collection = repository.not_nil!.inner_join(&.{{options[:this_joined_through].id}})
+                        .where({{through_ass_options[:class_name]}}, { {{through_ass_options[:foreign_key]}}, :in, array_of_local_keys })
+                        .execute
+
+                      child_collection.each do |child|
+                        mapper_by_local_key[child.{{through_ass_options[:foreign_key].id}}].{{property_name.id}}(load: false) << child
+                      end
+                    end
+
+                  end
+
+                  repository
+
+                {% elsif type == :has_many %}
+                  {% local_key_options = DATABASE_MAPPING[:column_names][options[:local_key]]%}
+                  repository = {{options[:class_name]}}.repository.init_where
+
+                  @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+                    #TODO: ideally should read types of fields out of results of db_mapping macro
+                    mapper_by_local_key = {} of {{local_key_options[:type]}} => {{@type}}
+                    array_of_local_keys = [] of {{local_key_options[:type]}}
+
+                    collection.each do |model|
+                      if model.{{options[:local_key].id}}
+                        array_of_local_keys << model.{{options[:local_key].id}}.not_nil!
+                        mapper_by_local_key[model.{{options[:local_key].id}}.not_nil!] = model
+                      end
+                    end
+
+                    unless array_of_local_keys.empty?
+                      child_collection = repository.not_nil!.where({{options[:class_name]}}.table_name, { {{options[:foreign_key]}}, :in, array_of_local_keys }).execute
+
+                      child_collection.each do |child|
+                        mapper_by_local_key[child.{{options[:foreign_key].id}}].{{property_name.id}}(load: false) << child
+                      end
+                    end
+
+                  end
+
+                  repository
+
+                {% elsif type == :has_one%}
+                  {% local_key_options = DATABASE_MAPPING[:column_names][options[:local_key]]%}
+                  repository = {{options[:class_name]}}.repository.init_where
+
+                  @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+                    #TODO: ideally should read types of fields out of results of db_mapping macro
+                    mapper_by_local_key = {} of {{local_key_options[:type]}} => {{@type}}
+                    array_of_local_keys = [] of {{local_key_options[:type]}}
+
+                    collection.each do |model|
+                      if model.{{options[:local_key].id}}
+                        array_of_local_keys << model.{{options[:local_key].id}}.not_nil!
+                        mapper_by_local_key[model.{{options[:local_key].id}}.not_nil!] = model
+                      end
+                    end
+
+                    unless array_of_local_keys.empty?
+                      child_collection = repository.not_nil!.where({{options[:class_name]}}.table_name, { {{options[:foreign_key]}}, :in, array_of_local_keys }).execute
+
+                      child_collection.each do |child|
+                        mapper_by_local_key[child.{{options[:foreign_key].id}}].{{property_name.id}} = child
+                      end
+                    end
+
+                  end
+
+                  repository
+                {% elsif type == :belongs_to && options[:polymorphic] %}
+                  {% local_key_options = DATABASE_MAPPING[:column_names][options[:local_key]]%}
+                  {% separate_types_ary_of_str = options[:supported_types].stringify.split('|').map(&.strip) %}
+
+                  repositories = {
+                    {% separate_types_ary_of_str_size_flag = separate_types_ary_of_str.size %}
+                    {% iterations_counter_flag = 0 %}
+                    {% for type in separate_types_ary_of_str%}
+                      {% iterations_counter_flag = iterations_counter_flag + 1 %}
+                      {{type.split("::")[-1]}}: {{type.id}}.repository.init_where {{",".id unless iterations_counter_flag == separate_types_ary_of_str_size_flag }}
+                    {% end %}
+                  }
+
+                  @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+                    #TODO: ideally should read types of fields out of results of db_mapping macro
+                    mapper_by_local_key = {
+                      {% separate_types_ary_of_str_size_flag = separate_types_ary_of_str.size %}
+                      {% iterations_counter_flag = 0 %}
+                      {% for type in separate_types_ary_of_str%}
+                        {% iterations_counter_flag = iterations_counter_flag + 1 %}
+                        {{type.split("::")[-1]}}: Hash({{local_key_options[:type]}}, {{@type}}).new(initial_capacity: 20) {{",".id unless iterations_counter_flag == separate_types_ary_of_str_size_flag }}
+                      {% end %}
+                    }
+                    arrays_of_local_keys = {
+                      {% separate_types_ary_of_str_size_flag = separate_types_ary_of_str.size %}
+                      {% iterations_counter_flag = 0 %}
+                      {% for type in separate_types_ary_of_str%}
+                        {% iterations_counter_flag = iterations_counter_flag + 1 %}
+                        {{type.split("::")[-1]}}: Array({{local_key_options[:type]}}).new(20) {{",".id unless iterations_counter_flag == separate_types_ary_of_str_size_flag }}
+                      {% end %}
+                    }
+
+                    collection.each do |model|
+                      if model.{{options[:local_key].id}}
+                        arrays_of_local_keys[model.friend_type.not_nil!] << model.{{options[:local_key].id}}.not_nil!
+                        mapper_by_local_key[model.friend_type.not_nil!][model.{{options[:local_key].id}}.not_nil!] = model
+                      end
+                    end
+
+                    arrays_of_local_keys.each do |name, array_of_local_keys|
+                      unless array_of_local_keys.empty?
+                        child_collection = repositories[name].not_nil!.where(nil, { {{options[:foreign_key]}}, :in, array_of_local_keys }).execute
+                        child_collection.each do |child|
+                          mapper_by_local_key[name][child.{{options[:foreign_key].id}}.not_nil!].{{property_name.id}} = child
+                        end
+                      end
+                    end
+
+                  end
+
+                  repositories
+
+                {% elsif type == :belongs_to %}
+                  {% local_key_options = DATABASE_MAPPING[:column_names][options[:local_key]]%}
+                  repository = {{options[:class_name]}}.repository.init_where
+
+                  @resolver_proc = Proc(Shepherd::Model::Collection({{@type}}), Nil).new do |collection|
+                    #TODO: ideally should read types of fields out of results of db_mapping macro
+                    mapper_by_local_key = {} of {{local_key_options[:type]}} => {{@type}}
+                    array_of_local_keys = [] of {{local_key_options[:type]}}
+
+                    collection.each do |model|
+                      if model.{{options[:local_key].id}}
+                        array_of_local_keys << model.{{options[:local_key].id}}.not_nil!
+                        mapper_by_local_key[model.{{options[:local_key].id}}.not_nil!] = model
+                      end
+                    end
+
+                    unless array_of_local_keys.empty?
+                      child_collection = repository.not_nil!.where({{options[:class_name]}}.table_name, { {{options[:foreign_key]}}, :in, array_of_local_keys }).execute
+
+                      child_collection.each do |child|
+                        mapper_by_local_key[child.{{options[:foreign_key].id}}].{{property_name.id}} = child
+                      end
+                    end
+
+                  end
+
+                  repository
+                {% end %}
+
+              end
+
+          {% end %}
+
+        end
+
+      end
+
 
     end
-
-
-  end
 
 
 end

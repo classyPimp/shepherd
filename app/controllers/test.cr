@@ -25,25 +25,60 @@ class App::Controllers::Test < Shepherd::Controller::Base
   def index : Nil
 
     # user = Models::User.new
-    # user.name = "joe"
+    # user.name = "joepoly"
+    # user.friend_type = "User"
+    # user.friend_id = 1
     # user.repository.create.execute
-    # p user.id
-    # p user.name
-    # p user.email
-    # p "done"
-    # Shepherd::Database::Connection.get.query("select * from users where id in ($1)", [[1,2,3,4]]) do |rs|
     #
+    # p user.friend
+    # # p user.id
+    # # p user.name
+    # # p user.email
+    # # p "done"
+    # # Shepherd::Database::Connection.get.query("select * from users where id in ($1)", [[1,2,3,4]]) do |rs|
+    # #
+    # # end
+    # collection = Models::User.repository
+    #   .where(nil, {"id", :in, [22, 23, 24, 25, 26]})
+    #   .inner_join(&.friend(Models::User, alias_as: "foo_users"))
+    #   .execute
+    #
+    # collection.each do |user|
+    #   p user
     # end
-    collection = Models::User.repository
-      .where("users", {"id", :in, [1,2,3,4]})
-      .or(Models::User, {"id", :eq, 2})
-      .or(Models::User, {"name", :eq, "joe"})
-      .eager_load(&.accounts.select(Models::Account, "id", "user_id"))
+    collection = Models::PostText.repository
+      .where(Models::PostText, {"id", :in, [1,2,3]})
       .execute
 
-    user = collection[0]#.user
-    p user
-    p user.account
+    pt = collection[0]
+
+    pt.posts
+
+    #p post.post_nodes
+
+    #p post.post_texts
+
+
+
+    #
+    # p post.post_nodes
+      #.eager_load(&.user)
+    # collection = Models::User.repository
+    #   .inner_join(&.user)
+    #   .where("users", {"id", :in, [1,2,3,4]})
+    #   .execute
+    #
+    #
+    # collection = Models::User.repository
+    #   .where({"id", :eq, 1})
+    #   .limit(1)
+    #   .execute
+    # user = collection[0]
+    # user.user
+    # user = collection[0]
+    # user.user
+    #p user.account
+    #p user.user
     #p user.account.user
 
     render plain: Shepherd::Configuration::Security.secret_key

@@ -4,7 +4,7 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
 
 
     macro database_mapping(mapping_options)
-
+      DATABASE_MAPPING = {{mapping_options}}
       {% column_names_and_their_options = mapping_options[:column_names] %}
 
       macro_set_table_name("{{mapping_options[:table_name].id}}")
@@ -96,6 +96,7 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
 
 
     macro macro_set_string_db_field_names_array_without_primary_key(column_names_and_their_options)
+    #FIXME: if only one field mapped will raise, e.g. only "id"
       {% array = [] of String %}
 
       {% for field_name, options in column_names_and_their_options %}
@@ -193,4 +194,6 @@ module Shepherd::Model::Modules::DBMappingToFieldsAndDBResultParsing
 
 
   end
+
+
 end

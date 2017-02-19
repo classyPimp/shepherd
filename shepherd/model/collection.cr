@@ -19,7 +19,7 @@ class Shepherd::Model::Collection(T)
     @collection[index]?
   end
 
-  def each(&block : T -> _)
+  def each(&block : T -> Nil)
     @collection.each(&block)
   end
 

@@ -84,18 +84,12 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   def from(table_name)
     @from_called = true
     @from_part_string_builder << table_name << ' '
-
     self
   end
 
-  #Tuple(String, Symbol, DB::Any)
-  def where(raw_query : String, *args : DB::Any)
-    @where_part_string_builder << raw_query << ' '
-    #TODO: should push args to where args
-    self
-  end
 
   #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
+  #Tuple(String, Symbol, DB::Any)
   def where(prefix : (String | Shepherd::Model::Base.class | Nil), *args : Tuple(String, Symbol, DB::Any))
 
     case prefix
@@ -165,6 +159,16 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
     self
 
+  end
+
+  #where overload that sets default prefix for table_name
+  def where(raw_query : String, *args : DB::Any)
+    @where_part_string_builder << raw_query << ' '
+    #TODO: should push args to where args
+    self
+  end
+  def where(*args : Tuple(String, Symbol, DB::Any))
+    self.where(nil, *args)
   end
 
   #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
@@ -247,7 +251,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
 
   def default_select : String
-    " *"
+    " #{T.table_name}.*"
   end
 
 
@@ -291,7 +295,8 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
       when Shepherd::Model::JoinBuilderBase::JoinTypesEnum::Inner
         @join_part_string_builder << " INNER JOIN "
       end
-      @join_part_string_builder << "#{statement[:class_to_join].table_name.as(String)} on #{statement[:parent].table_name.as(String)}.#{statement[:parent_column]} = #{statement[:class_to_join].table_name.as(String)}.#{statement[:class_to_join_column]} "
+      table_name_or_alias = statement[:alias_as] ? statement[:alias_as] : statement[:class_to_join].table_name.as(String)
+      @join_part_string_builder << "#{statement[:class_to_join].table_name.as(String)} #{statement[:alias_as] ? statement[:alias_as] : nil} on #{statement[:parent].table_name.as(String)}.#{statement[:parent_column]} = #{table_name_or_alias}.#{statement[:class_to_join_column]} #{statement[:extra_join_criteria]}"
     end
     self
   end
