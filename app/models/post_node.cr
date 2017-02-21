@@ -20,7 +20,7 @@ class Models::PostNode < Model::AppDomainBase
     node: {
       type: :belongs_to, polymorphic: true, polymorphic_type_field: "node_type",
       local_key: "node_id", foreign_key: "id",
-      supported_types: (Models::PostText)
+      supported_types: (Models::PostText | Models::PostImage)
     }
     # friend: {
     #   type: :has_one, class_name: Models::User,

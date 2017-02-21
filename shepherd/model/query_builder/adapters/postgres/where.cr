@@ -48,8 +48,13 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   @eager_load_called = false
 
   @eager_loaders : Array(Shepherd::Model::EagerLoaderInterface)?
+
   def eager_loaders
     @eager_loaders ||= Array(Shepherd::Model::EagerLoaderInterface).new(10)
+  end
+
+  def helpers
+    Helpers
   end
 
   def initialize
@@ -57,16 +62,11 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     @select_part_string_builder << "SELECT"
   end
 
+
   #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
   def select(prefix : (String | Shepherd::Model::Base.class | Nil), *args : String)
-    case prefix
-    when String
-      nil
-    when Shepherd::Model::Base.class
-      prefix = prefix.table_name
-    when nil
-      prefix = T.table_name
-    end
+
+    prefix = resolve_table_name_prefix(prefix)
 
     @select_called = true
 
@@ -78,6 +78,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     @select_part_string_builder << ' '
 
     self
+
   end
 
 
@@ -92,14 +93,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   #Tuple(String, Symbol, DB::Any)
   def where(prefix : (String | Shepherd::Model::Base.class | Nil), *args : Tuple(String, Symbol, DB::Any))
 
-    case prefix
-    when String
-      nil
-    when Shepherd::Model::Base.class
-      prefix = prefix.table_name
-    when nil
-      prefix = T.table_name
-    end
+    prefix = resolve_table_name_prefix(prefix)
 
     insert_where_and_or_nil
 
@@ -126,8 +120,9 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     self
 
   end
-  #Overload for handling IN statement (for future any other that supplies array)
-  def where(prefix, triplet : Tuple(String, Symbol, Array))
+
+  #resolves table name prefix used in methods that add to statements
+  def resolve_table_name_prefix(prefix : (String | Shepherd::Model::Base.class | Nil)) : String?
     case prefix
     when String
       nil
@@ -136,6 +131,14 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     when nil
       prefix = T.table_name
     end
+    prefix
+  end
+
+
+  #Overload for handling IN statement (for future any other that supplies array)
+  def where(prefix : (String | Shepherd::Model::Base.class | Nil), triplet : Tuple(String, Symbol, Array))
+
+    prefix = resolve_table_name_prefix(prefix)
 
     insert_where_and_or_nil
     @where_called = true
@@ -161,12 +164,14 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
   end
 
-  #where overload that sets default prefix for table_name
+
   def where(raw_query : String, *args : DB::Any)
     @where_part_string_builder << raw_query << ' '
     #TODO: should push args to where args
     self
   end
+
+  #where overload that sets default prefix for table_name
   def where(*args : Tuple(String, Symbol, DB::Any))
     self.where(nil, *args)
   end
@@ -275,9 +280,11 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     @from_part_string_builder.to_s
   end
 
+
   def finalize_join_part : String
     @join_part_string_builder.to_s
   end
+
 
   def finalize_where_part : String
     @where_statement_args.each do |arg|
@@ -286,20 +293,59 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     @where_part_string_builder.to_s
   end
 
+
   def inner_join(&block) : self
     @join_called = true
     join_builder = yield T::JoinBuilder.new(Shepherd::Model::JoinBuilderBase::JoinTypesEnum::Inner)
     statements = join_builder.get_statements
+
     statements.each do |statement|
       case statement[:join_type]
       when Shepherd::Model::JoinBuilderBase::JoinTypesEnum::Inner
         @join_part_string_builder << " INNER JOIN "
       end
+
       table_name_or_alias = statement[:alias_as] ? statement[:alias_as] : statement[:class_to_join].table_name.as(String)
-      @join_part_string_builder << "#{statement[:class_to_join].table_name.as(String)} #{statement[:alias_as] ? statement[:alias_as] : nil} on #{statement[:parent].table_name.as(String)}.#{statement[:parent_column]} = #{table_name_or_alias}.#{statement[:class_to_join_column]} #{statement[:extra_join_criteria]}"
+
+      @join_part_string_builder << "#{statement[:class_to_join].table_name.as(String)} #{statement[:alias_as] ? statement[:alias_as] : nil} on #{statement[:parent].table_name.as(String)}.#{statement[:parent_column]} = #{table_name_or_alias}.#{statement[:class_to_join_column]} "
+      if statement[:extra_join_criteria]
+        @join_part_string_builder << statement[:extra_join_criteria]
+      end
+      #add_extra_join_if_any(statement[:extra_join])
     end
+
     self
   end
+
+  #not used started to implement but refused to continue
+  #if join builder returns statement with extra_join_criteria, this method adds this criterias to @join_builder
+  def add_extra_join_if_any(extra_join : Array(Tuple(Symbol, String, Symbol, DB::Any))?) : Nil
+
+    if extra_join
+
+      extra_join.each do |options|
+        type = options[0]
+        left_operand = options[1]
+        operator = options[2]
+        right_operand = options[3]
+
+        case type
+        when :and
+          @join_part_string_builder << " AND "
+          @join_part_string_builder << left_operand
+          case operand
+          when :eq
+            @join_part_string_builder << " = "
+          end
+          @join_part_string_builder << right_operand
+        end
+
+      end
+
+    end
+
+  end
+
 
   def eager_load(&block : T::EagerLoader -> Nil)
     @eager_load_called = true

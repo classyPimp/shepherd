@@ -7,7 +7,7 @@ class Shepherd::Model::JoinBuilderBase
     parent_column: String,
     class_to_join_column: String,
     alias_as: String?,
-    extra_join_criteria: String? #TODO: refactor to accept like {and: {x, :eq, z}}
+    extra_join_criteria: String?#Array(Tuple(Symbol, String, Symbol, DB::Any))? #TODO: refactor to accept like {and: {x, :eq, z}}
     #for adapter to build statement (now it's hardcoded as string "and x.foo = 'bar'" which can be implemented differently on another DB's)
   )
 

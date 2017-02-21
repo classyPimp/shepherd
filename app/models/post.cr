@@ -19,7 +19,16 @@ class Models::Post < Model::AppDomainBase
       through: :post_nodes, joined_via: :node,
       polymorphic_through: true, polymorphic_type_field: "node_type",
       polymorphic_foreign_key: "node_id",
-      this_joined_through: :post_nodes
+      this_joined_through: :post_nodes,
+      this_joined_as: "PostText"
+    },
+    post_images: {
+      type: :has_many, class_name: Models::PostImage,
+      through: :post_nodes, joined_via: :node,
+      polymorphic_through: true, polymorphic_type_field: "node_type",
+      polymorphic_foreign_key: "node_id",
+      this_joined_through: :post_nodes,
+      this_joined_as: "PostImage"
     }
     # friend: {
     #   type: :has_one, class_name: Models::User,

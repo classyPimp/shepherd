@@ -7,20 +7,28 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
         {% for property_name, config in aggregate_config %}
 
           {% type = config[:type] %}
+
           {% if type == :has_many && config[:through] && config[:polymorphic_through]%}
             set_has_many_through_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+
           {% elsif type == :has_many && config[:as] %}
             set_has_many_as_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+
           {% elsif type == :has_many && config[:through] != nil %}
             set_has_many_through({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+
           {% elsif type == :has_many %}
             set_has_many({{property_name}}, {{config}}, {{aggregate_config}})
+
           {% elsif type == :has_one %}
             set_has_one({{property_name}}, {{config}}, {{aggregate_config}})
+
           {% elsif type == :belongs_to && config[:polymorphic] %}
             set_belongs_to_polymorphic({{property_name}}, {{config}}, {{aggregate_config}})
+
           {% elsif type == :belongs_to %}
             set_belongs_to({{property_name}}, {{config}}, {{aggregate_config}})
+            
           {% end %}
 
         {% end %}
@@ -156,7 +164,7 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
         def {{property_name.id}}
           {% if config[:this_joined_as] %}
-            extra_join_criteria = " AND #{{{aggregate_config[config[:through][:class_name]]}}}.#{{{aggregate_config[config[:through][:polymorphic_type_field]]}}} = '#{config[:this_joined_as]}' "
+            extra_join_criteria = " AND #{{{aggregate_config[config[:through]][:class_name]}}.table_name}.{{config[:polymorphic_type_field].id}} = '{{config[:this_joined_as].id}}' "
           {%else%}
             extra_join_criteria = nil
           {% end %}
@@ -172,7 +180,6 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
             end
           ).as(Shepherd::Model::Collection({{class_name}}))
         end
-
       end
 
 
@@ -341,7 +348,7 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
       macro macro_set_getter_for_has_many_through(property_name, class_name, config, aggregate_config)
         def {{property_name.id}}
           {% if config[:this_joined_as] %}
-            extra_join_criteria = " AND #{{{aggregate_config[config[:through]][:class_name].id}}.table_name}.{{aggregate_config[config[:through]][:foreign_polymorphic_field].id}} = '{{config[:this_joined_as].id}}' "
+            extra_join_criteria = " AND #{{{aggregate_config[config[:through]][:class_name].id}}.table_name}.{{aggregate_config[config[:through]][:foreign_polymorphic_field].id}} = '{{config[:this_joined_as].id}}'"
           {% else %}
             extra_join_criteria = nil
           {% end %}
@@ -357,7 +364,6 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
             end
           ).as(Shepherd::Model::Collection({{class_name}}))
         end
-
       end
 
 
@@ -735,15 +741,6 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
       end
 
-
-
-
-
-
-
-
-
-
       macro generate_eager_load_builder(aggregate_config)
 
         class EagerLoader
@@ -781,7 +778,7 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
                     unless array_of_local_keys.empty?
                       child_collection = repository.not_nil!.inner_join(&.{{options[:this_joined_through].id}})
                         .where({{through_ass_options[:class_name]}}, { {{through_ass_options[:foreign_key]}}, :in, array_of_local_keys })
-                        where({{through_ass_options[:class_name]}}, { {{options[:polymorphic_type_field]}}, :eq, {{options[:class_name].stringify.split("::")[-1]}} })
+                        .where({{through_ass_options[:class_name]}}, { {{options[:polymorphic_type_field]}}, :eq, {{options[:class_name].stringify.split("::")[-1]}} })
                         .execute
 
                       child_collection.each do |child|
