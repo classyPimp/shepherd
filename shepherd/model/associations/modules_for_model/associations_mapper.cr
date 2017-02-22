@@ -4,37 +4,38 @@ module Shepherd::Model::Associations::ModulesForModel::AssociationsMapper
 
       macro associations_config(aggregate_config)
 
-        {% for property_name, config in aggregate_config %}
-
-          {% type = config[:type] %}
-
-          {% if type == :has_many && config[:through] && config[:polymorphic_through]%}
-            set_has_many_through_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
-
-          {% elsif type == :has_many && config[:as] %}
-            set_has_many_as_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
-
-          {% elsif type == :has_many && config[:through] != nil %}
-            set_has_many_through({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
-
-          {% elsif type == :has_many %}
-            set_has_many({{property_name}}, {{config}}, {{aggregate_config}})
-
-          {% elsif type == :has_one %}
-            set_has_one({{property_name}}, {{config}}, {{aggregate_config}})
-
-          {% elsif type == :belongs_to && config[:polymorphic] %}
-            set_belongs_to_polymorphic({{property_name}}, {{config}}, {{aggregate_config}})
-
-          {% elsif type == :belongs_to %}
-            set_belongs_to({{property_name}}, {{config}}, {{aggregate_config}})
-            
-          {% end %}
-
-        {% end %}
-
-        generate_join_builder({{aggregate_config}})
-        generate_eager_load_builder({{aggregate_config}})
+        Shepherd::Model::Associations::GenerationMacros::Dispatcher.set_associations({{@type}}, {{aggregate_config}}, {{DATABASE_MAPPING}})
+        # {% for property_name, config in aggregate_config %}
+        #
+        #   {% type = config[:type] %}
+        #
+        #   {% if type == :has_many && config[:through] && config[:polymorphic_through]%}
+        #     set_has_many_through_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+        #
+        #   {% elsif type == :has_many && config[:as] %}
+        #     set_has_many_as_polymorphic({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+        #
+        #   {% elsif type == :has_many && config[:through] != nil %}
+        #     set_has_many_through({{property_name.symbolize}}, {{config}}, {{aggregate_config}})
+        #
+        #   {% elsif type == :has_many %}
+        #     set_has_many({{property_name}}, {{config}}, {{aggregate_config}})
+        #
+        #   {% elsif type == :has_one %}
+        #     set_has_one({{property_name}}, {{config}}, {{aggregate_config}})
+        #
+        #   {% elsif type == :belongs_to && config[:polymorphic] %}
+        #     set_belongs_to_polymorphic({{property_name}}, {{config}}, {{aggregate_config}})
+        #
+        #   {% elsif type == :belongs_to %}
+        #     set_belongs_to({{property_name}}, {{config}}, {{aggregate_config}})
+        #
+        #   {% end %}
+        #
+        # {% end %}
+        #
+        # generate_join_builder({{aggregate_config}})
+        # generate_eager_load_builder({{aggregate_config}})
 
       end
 

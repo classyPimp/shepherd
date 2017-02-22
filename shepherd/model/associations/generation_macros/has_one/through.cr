@@ -1,4 +1,4 @@
-class Shepherd::Model::GenerationMacros::HasMany::Through
+class Shepherd::Model::GenerationMacros::HasOne::Through
 
 
   macro generate_for_join_builder(master_class, property_name, config, aggregate_config, database_mapping)
@@ -103,7 +103,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
 
   macro set_property(property_name, slave_class)
 
-    @{{property_name.id}} : Shepherd::Model::Collection({{slave_class}})?
+    @{{property_name.id}} : {{slave_class}}?
 
   end
 
@@ -116,11 +116,12 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
           {{slave_class}}.repository
             .inner_join(&.{{this_joined_through.id}}
             .where({{through_class}}, { {{foreign_key_for_through}}, :eq, self.{{local_key_for_through.id}} })
-            .execute
+            .limit(1)
+            .execute[0]?
         else
-          Shepherd::Model::Collection({{slave_class}}).new
+          nil
         end
-      ).as(Shepherd::Model::Collection({{slave_class}}))
+      )
     end
 
   end
@@ -130,8 +131,8 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
 
     def {{property_name.id}}(*, load : Bool)
       @{{property_name.id}} ||= (
-          Shepherd::Model::Collection({{slave_class}}).new
-      ).as(Shepherd::Model::Collection({{slave_class}}))
+          nil
+      )
     end
 
   end
@@ -145,6 +146,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
           {{slave_class}}.repository
             .inner_join(&.{{this_joined_through.id}}
             .where({{through_class}}, { {{foreign_key_for_through}}, :eq, self.{{local_key_for_through.id}} })
+            .limit(1)
         )
       )
     end
@@ -154,7 +156,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
 
   macro set_setter(property_name, slave_class)
 
-    def {{property_name.id}}=(value : Shepherd::Model::Collection({{slave_class.id}}))
+    def {{property_name.id}}=(value : {{slave_class.id}})
       @{{property_name.id}} = value
     end
 

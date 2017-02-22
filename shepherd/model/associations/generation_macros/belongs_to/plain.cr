@@ -1,10 +1,9 @@
-class Shepherd::Model::GenerationMacros::HasMany::Plain
-
+class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Plain
 
   macro generate_for_join_builder(master_class, property_name, config, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
-    {% local_key = config[:local_key] %}
-    {% foreign_key = config[:foreign_key] %}
+    {% local_key = config[:local_key] || "#{slave_class.stringify.split("::").downcase[-1]}_id" %}
+    {% foreign_key = config[:foreign_key] || "id" %}
     {% alias_on_join_as = config[:alias_on_join_as] %}
 
     def {{property_name.id}}(*, alias_as : String? = {{alias_on_join_as}}, extra_join_criteria : String? = nil)
@@ -30,8 +29,8 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
     {% local_key_options = database_mapping[:column_names][options[:local_key]]%}
     {% local_key_type = local_key[:type] %}
-    {% local_key = config[:local_key] %}
-    {% foreign_key = config[:foreign_key] %}
+    {% local_key = config[:local_key] || "#{slave_class.stringify.split("::").downcase[-1]}_id" %}
+    {% foreign_key = config[:foreign_key] || "id" %}
 
     def {{property_name.id}}
 
@@ -53,7 +52,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
           child_collection = repository.not_nil!.where({{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).execute
 
           child_collection.each do |child|
-            mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}}(load: false) << child
+            mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}}(load: false) = child
           end
         end
 
@@ -76,8 +75,8 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
 
   macro set(master_class, property_name, config, aggregate_config)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
-    {% local_key = config[:local_key] || "id" %}
-    {% foreign_key = config[:foreign_key] || "#{master_class.stringify.split("::").downcase}_id" %}
+    {% local_key = config[:local_key] || "#{slave_class.stringify.split("::").downcase[-1]}_id" %}
+    {% foreign_key = config[:foreign_key] || "id" %}
 
 
     {{@type}}.set_property({{property_name}}, {{slave_class}})
@@ -96,7 +95,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
 
   macro set_property(property_name, slave_class)
 
-    @{{property_name.id}} : Shepherd::Model::Collection({{slave_class}})?
+    @{{property_name.id}} : {{slave_class}}?
 
   end
 
@@ -107,11 +106,12 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
         if @{{ local_key.id }}
           {{slave_class}}.repository.where(
           {{slave_class}}.table_name, { "{{foreign_key.id}}", :eq, self.{{ local_key.id }} }
-          ).execute
+          ).limit(1)
+          .execute[0]?
         else
-          Shepherd::Model::Collection({{slave_class}}).new
+          nil
         end
-      ).as(Shepherd::Model::Collection({{slave_class}}))
+      )
     end
 
   end
@@ -121,8 +121,8 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
 
     def {{property_name.id}}(*, load : Bool)
       @{{property_name.id}} ||= (
-          Shepherd::Model::Collection({{slave_class}}).new
-      ).as(Shepherd::Model::Collection({{slave_class}}))
+          nil
+      )
     end
 
   end
@@ -132,9 +132,11 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
 
     def {{property_name.id}}(yield_repository : Bool, &block)
       @{{property_name.id}} ||= (
-        yield ({{slave_class}}.repository.where(
-          {{slave_class}}.table_name, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
-        ))
+        yield (
+          {{slave_class}}.repository.where(
+            {{slave_class}}.table_name, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
+          ).limit(1)
+        )
       )
     end
 
@@ -143,12 +145,10 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
 
   macro set_setter(property_name, slave_class)
 
-    def {{property_name.id}}=(value : Shepherd::Model::Collection({{slave_class.id}}))
+    def {{property_name.id}}=(value : {{slave_class.id}})
       @{{property_name.id}} = value
     end
 
   end
-  #END HASMANY
-
 
 end

@@ -2,7 +2,7 @@ class Models::PostImage < Model::AppDomainBase
 
   database_mapping(
     { table_name: "post_images",
-      column_names: {cd d
+      column_names: {
         "id": {type: Int32, primary_key: true},
         "content": {type: String}
       }

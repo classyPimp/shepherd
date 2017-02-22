@@ -1,4 +1,4 @@
-class Shepherd::Model::GenerationMacros::HasMany::Plain
+class Shepherd::Model::GenerationMacros::HasOne::AsPolymorphic
 
 
   macro generate_for_join_builder(master_class, property_name, config, aggregate_config, database_mapping)
@@ -6,8 +6,9 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
     {% local_key = config[:local_key] %}
     {% foreign_key = config[:foreign_key] %}
     {% alias_on_join_as = config[:alias_on_join_as] %}
+    {% foreign_polymorphic_type_field = config[:foreign_polymorphic_type_field] %}
 
-    def {{property_name.id}}(*, alias_as : String? = {{alias_on_join_as}}, extra_join_criteria : String? = nil)
+    def {{property_name.id}}(*, alias_as : String? = {{alias_on_join_as}}, extra_join_criteria : String? = " AND #{{{slave_class}}.table_name}.{{foreign_polymorphic_type_field}} = {{master_class_name_for_type_field}} ")
 
       @join_statements << {
         join_type: @join_type,
@@ -32,6 +33,8 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
     {% local_key_type = local_key[:type] %}
     {% local_key = config[:local_key] %}
     {% foreign_key = config[:foreign_key] %}
+    {% master_class_name_for_type_field = master_class.stringify.split("::")[-1]%}
+    {% foreign_polymorphic_type_field = config[:foreign_polymorphic_type_field] %}
 
     def {{property_name.id}}
 
@@ -50,7 +53,11 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
         end
 
         unless array_of_local_keys.empty?
-          child_collection = repository.not_nil!.where({{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).execute
+          child_collection = repository.not_nil!.where(
+            {{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }
+          )where(
+            {{slave_class}}.table_name, { {{foreign_polymorphic_type_field}}, :eq, {{ master_class_name_for_type_field }} }
+          ).execute
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}}(load: false) << child
@@ -67,26 +74,29 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
 
 
   #has many plain; direct relation
-  # posts: {
+  # comments: {
   #   type: :has_many,
-  #   class_name: Models::Post, #TODO: can be infered
+  #   class_name: Models::Comment, #TODO: can be infered
   #   local_key: "id", #TODO: can be infered
-  #   foreign_key: "user_id" #TODO: can be infered
+  #   foreign_key: "commentable_id", #TODO: can be infered
+  #   foreign_polymorphic_type_field: "commentable_type",
   # }
 
   macro set(master_class, property_name, config, aggregate_config)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
     {% local_key = config[:local_key] || "id" %}
-    {% foreign_key = config[:foreign_key] || "#{master_class.stringify.split("::").downcase}_id" %}
-
+    {% foreign_polymorphic_type_field = config[:foreign_polymorphic_type_field] %}
+    {% foreign_key = config[:foreign_key] || "#{foreign_polymorphic_type_field[0..-5]}_id" %} #-5_type
+    {% master_class_name_for_type_field = master_class.stringify.split("::")[-1]%}
+    {% alias_on_join_as = config[:alias_on_join_as] %}
 
     {{@type}}.set_property({{property_name}}, {{slave_class}})
 
-    {{@type}}.set_getter({{property_name}}, {{slave_class}}, {{local_key}}, {{foreign_key}})
+    {{@type}}.set_getter({{property_name}}, {{slave_class}}, {{local_key}}, {{foreign_key}}, {{foreign_polymorphic_type_field}}, {{master_class_name_for_type_field}})
 
     {{@type}}.set_getter_overload_load_false({{property_name}}, {{slave_class}})
 
-    {{@type}}.set_getter_overload_to_yield_repository({{property_name}}, {{slave_class}}, {{foreign_key}}, {{local_key}})
+    {{@type}}.set_getter_overload_to_yield_repository({{property_name}}, {{slave_class}}, {{foreign_key}}, {{local_key}}, {{foreign_polymorphic_type_field}})
 
     {{@type}}.macro_set_setter({{property_name}}, {{slave_class}})
 
@@ -101,12 +111,13 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
   end
 
 
-  macro set_getter(property_name, slave_class, local_key, foreign_key)
+  macro set_getter(property_name, slave_class, local_key, foreign_key, foreign_polymorphic_type_field,master_class_name_for_type_field)
     def {{property_name.id}}
       @{{property_name.id}} ||= (
         if @{{ local_key.id }}
           {{slave_class}}.repository.where(
-          {{slave_class}}.table_name, { "{{foreign_key.id}}", :eq, self.{{ local_key.id }} }
+            {{slave_class}}.table_name, { "{{foreign_key.id}}", :eq, self.{{ local_key.id }} },
+                                        { {{foreign_polymorphic_type_field}}, :eq, {{ master_class_name_for_type_field }} }
           ).execute
         else
           Shepherd::Model::Collection({{slave_class}}).new
@@ -128,13 +139,17 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
   end
 
 
-  macro set_getter_overload_to_yield_repository(property_name, slave_class, foreign_key, local_key)
+  macro set_getter_overload_to_yield_repository(property_name, slave_class, foreign_key, local_key, master_class_name_for_type_field, foreign_polymorphic_type_field)
 
     def {{property_name.id}}(yield_repository : Bool, &block)
       @{{property_name.id}} ||= (
-        yield ({{slave_class}}.repository.where(
-          {{slave_class}}.table_name, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
-        ))
+        yield (
+          {{slave_class}}.repository.where(
+            {{slave_class}}.table_name,
+            { {{foreign_key}}, :eq, self.{{ local_key.id }} },
+            { {{foreign_polymorphic_type_field}}, :eq, {{ master_class_name_for_type_field }} }
+          ).limit(1)
+        )
       )
     end
 
@@ -143,7 +158,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Plain
 
   macro set_setter(property_name, slave_class)
 
-    def {{property_name.id}}=(value : Shepherd::Model::Collection({{slave_class.id}}))
+    def {{property_name.id}}=(value : {{slave_class.id}})
       @{{property_name.id}} = value
     end
 
