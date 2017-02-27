@@ -12,7 +12,7 @@ class Shepherd::Model::Associations::GenerationMacros::EagerLoader
       end
 
       {% for property_name, config in aggregate_config %}
-
+        {% property_name = property_name.id.symbolize %}
         {% type = config[:type] %}
 
         #HAS_MANY THROUGH POLYMORPHIC

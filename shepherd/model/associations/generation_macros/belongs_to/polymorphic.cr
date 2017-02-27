@@ -29,7 +29,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
   end
 
 
-  macro generate_for_eager_loader(owner_class, config, aggregate_config, database_mapping)
+  macro generate_for_eager_loader(owner_class, config, property_name, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = owner_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
     {% local_key_options = database_mapping[:column_names][options[:local_key]]%}
     {% local_key_type = local_key[:type] %}
@@ -130,7 +130,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
     def {{property_name.id}}
       @{{property_name.id}} ||= (
         if @{{ local_key.id }}
-          case @{{polymorphic_type_field}}
+          case @{{polymorphic_type_field.id}}
             {%for type in supported_types_ary%}
               when {{ type.stringify.split("::")[-1] }}
                 {{type.id}}.repository.where(
@@ -149,7 +149,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
 
   macro set_getter_overload_load_false(property_name, slave_type_union)
 
-    def {{property_name.id}}(*, load : Bool) : {{slave_type_union}}?
+    def {{property_name.id}}(*, load : Bool) : ({{slave_type_union}})?
       @{{property_name.id}} ||= (
           nil
       )
@@ -163,7 +163,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
     def {{property_name.id}}(yield_repository : Bool, &block)
       @{{property_name.id}} ||= (
         yield (
-          case @{{polymorphic_type_field}}
+          case @{{polymorphic_type_field.id}}
             {%for type in supported_types_ary%}
               when {{ type.stringify.split("::")[-1] }}
                 {{type.id}}.repository.where(

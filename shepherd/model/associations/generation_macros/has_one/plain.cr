@@ -1,5 +1,4 @@
-class Shepherd::Model::GenerationMacros::HasOne::Plain
-
+class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
 
   macro generate_for_join_builder(master_class, property_name, config, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
@@ -26,10 +25,10 @@ class Shepherd::Model::GenerationMacros::HasOne::Plain
   end
 
 
-  macro generate_for_eager_loader(owner_class, config, aggregate_config, database_mapping)
+  macro generate_for_eager_loader(owner_class, property_name, config, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
-    {% local_key_options = database_mapping[:column_names][options[:local_key]]%}
-    {% local_key_type = local_key[:type] %}
+    {% local_key_config = database_mapping[:column_names][config[:local_key]]%}
+    {% local_key_type = local_key_config[:type] %}
     {% local_key = config[:local_key] %}
     {% foreign_key = config[:foreign_key] %}
 
@@ -53,7 +52,7 @@ class Shepherd::Model::GenerationMacros::HasOne::Plain
           child_collection = repository.not_nil!.where({{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).execute
 
           child_collection.each do |child|
-            mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}}(load: false) = child
+            mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}} = child
           end
         end
 
@@ -74,7 +73,7 @@ class Shepherd::Model::GenerationMacros::HasOne::Plain
   #   foreign_key: "user_id" #TODO: can be infered
   # }
 
-  macro set(master_class, property_name, config, aggregate_config)
+  macro set(master_class, property_name, config, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
     {% local_key = config[:local_key] || "id" %}
     {% foreign_key = config[:foreign_key] || "#{master_class.stringify.split("::").downcase}_id" %}
@@ -88,7 +87,7 @@ class Shepherd::Model::GenerationMacros::HasOne::Plain
 
     {{@type}}.set_getter_overload_to_yield_repository({{property_name}}, {{slave_class}}, {{foreign_key}}, {{local_key}})
 
-    {{@type}}.macro_set_setter({{property_name}}, {{slave_class}})
+    {{@type}}.set_setter({{property_name}}, {{slave_class}})
 
 
   end

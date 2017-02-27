@@ -1,7 +1,8 @@
 class Shepherd::Model::Repository::Base(AdapterT, ConnectionGetterT, T)
 
   @owner_model : T?
-
+  property :owner_model
+  
   def initialize(@owner_model : T)
   end
 

@@ -27,7 +27,7 @@ class Shepherd::Model::GenerationMacros::HasMany::AsPolymorphic
   end
 
 
-  macro generate_for_eager_loader(owner_class, config, aggregate_config, database_mapping)
+  macro generate_for_eager_loader(master_class, property_name, config, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
     {% local_key_options = database_mapping[:column_names][options[:local_key]]%}
     {% local_key_type = local_key[:type] %}
@@ -40,9 +40,9 @@ class Shepherd::Model::GenerationMacros::HasMany::AsPolymorphic
 
       repository = {{slave_class}}.repository.init_where
 
-      @resolver_proc = Proc(Shepherd::Model::Collection({{owner_class}}), Nil).new do |collection|
+      @resolver_proc = Proc(Shepherd::Model::Collection({{master_class}}), Nil).new do |collection|
 
-        mapper_by_local_key = {} of {{local_key_type}} => {{owner_class}}
+        mapper_by_local_key = {} of {{local_key_type}} => {{master_class}}
         array_of_local_keys = [] of {{local_key_type}}
 
         collection.each do |model|

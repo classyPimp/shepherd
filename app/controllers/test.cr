@@ -46,36 +46,36 @@ class App::Controllers::Test < Shepherd::Controller::Base
     # collection.each do |user|
     #   p user
     # end
-    p "post_node: has_many nodes polymorphic"
-    collection = Models::PostNode.repository
-      .where(Models::PostNode, {"id", :in, [1,2]})
-      .execute
-
-    post_node = collection[0]
-    p "should load post text"
-    p post_node.node
-
-    p "should load post image"
-    post_node = collection[1]
-    p post_node.node
-
-
-    p "post has_many post_nodes"
-    collection = Models::Post.repository
-      .where(Models::Post, {"id", :in, [1,2]})
-      .execute
-
-    post = collection[0]
-
-    p post.post_nodes
-
-    p "post has_many post_texts through polymorphic nodes"
-
-    p post.post_texts
-
-    p "post has_many post_images through polymorphic nodes"
-
-    p post.post_images
+    # p "post_node: has_many nodes polymorphic"
+    # collection = Models::PostNode.repository
+    #   .where(Models::PostNode, {"id", :in, [1,2]})
+    #   .execute
+    #
+    # post_node = collection[0]
+    # p "should load post text"
+    # p post_node.node
+    #
+    # p "should load post image"
+    # post_node = collection[1]
+    # p post_node.node
+    #
+    #
+    # p "post has_many post_nodes"
+    # collection = Models::Post.repository
+    #   .where(Models::Post, {"id", :in, [1,2]})
+    #   .execute
+    #
+    # post = collection[0]
+    #
+    # p post.post_nodes
+    #
+    # p "post has_many post_texts through polymorphic nodes"
+    #
+    # p post.post_texts
+    #
+    # p "post has_many post_images through polymorphic nodes"
+    #
+    # p post.post_images
 
     #
     # p post.post_nodes

@@ -23,7 +23,7 @@ class Shepherd::Initializers::Main
     draw_routes
     initialize_server_with_handlers
     connect_database
-    start_server
+    start_server unless TEST #TODO: SHOULD READ FROM ENV AND RUN IN THREAD
   end
 
 

@@ -1,13 +1,13 @@
-class Models::PostImage < Model::AppDomainBase
+class PostImage < Model::TestDomainBase
 
-  # database_mapping(
-  #   { table_name: "post_images",
-  #     column_names: {
-  #       "id": {type: Int32, primary_key: true},
-  #       "content": {type: String}
-  #     }
-  #   }
-  # )
+  database_mapping(
+    { table_name: "post_images",
+      column_names: {
+        "id": {type: Int32, primary_key: true},
+        "content": {type: String}
+      }
+    }
+  )
   #
   #
   # associations_config({

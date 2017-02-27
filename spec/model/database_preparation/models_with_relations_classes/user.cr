@@ -1,4 +1,4 @@
-class Models::User < Model::AppDomainBase
+class User < Model::TestDomainBase
 
   database_mapping(
     { table_name: "users",
@@ -15,13 +15,13 @@ class Models::User < Model::AppDomainBase
 
   associations_config({
     accounts: {
-      type: :has_many, class_name: Models::Account,
+      type: :has_many, class_name: Account,
       local_key: "id", foreign_key: "user_id"
-    }#,
-    # account: {
-    #   type: :belongs_to, class_name: Models::Account,
-    #   local_key: "id", foreign_key: "user_id"
-    # },
+    },
+    account: {
+      type: :has_one, class_name: Account,
+      local_key: "id", foreign_key: "user_id"
+    }
     # user: {
     #   type: :has_many, through: :account,
     #   class_name: Models::User, source: :user,
