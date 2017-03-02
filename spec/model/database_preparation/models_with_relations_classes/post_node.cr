@@ -1,4 +1,4 @@
-class Models::PostNode < Model::AppDomainBase
+class PostNode < Model::TestDomainBase
 
   database_mapping(
     { table_name: "post_nodes",

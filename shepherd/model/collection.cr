@@ -1,7 +1,7 @@
 class Shepherd::Model::Collection(T)
 
-  include Enumerable(T)
-  include Indexable(T)
+  #include Enumerable(T)
+  #include Indexable(T)
 
   property :collection
   @collection : Array(T)
@@ -26,6 +26,10 @@ class Shepherd::Model::Collection(T)
   def <<(value : T) : Array(T)
     @collection << value
     @collection
+  end
+
+  def size
+    @collection.size
   end
 
 end

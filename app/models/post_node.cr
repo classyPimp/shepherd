@@ -13,10 +13,10 @@ class Models::PostNode < Model::AppDomainBase
   #
   #
   # associations_config({
-  #   post: {
-  #     type: :belongs_to, class_name: Models::Post,
-  #     local_key: "post_id", foreign_key: "id"
-  #   },
+  #   # post: {
+  #   #   type: :belongs_to, class_name: Models::Post,
+  #   #   local_key: "post_id", foreign_key: "id"
+  #   # },
   #   node: {
   #     type: :belongs_to, polymorphic: true, polymorphic_type_field: "node_type",
   #     local_key: "node_id", foreign_key: "id",

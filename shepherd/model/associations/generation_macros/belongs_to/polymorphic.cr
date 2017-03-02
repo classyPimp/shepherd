@@ -10,7 +10,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
     {% polymorphic_type_field = config[:polymorphic_type_field]%}
 
     {%for type in supported_types_ary%}
-      def {{property_name.id}}(class_to_join : {{slave_type_union}}.class, *, alias_as : String? = {{alias_on_join_as}}, extra_join_criteria : String? = " AND #{{{owner_class}}.table_name}.{{polymorphic_type_field.id}} = '{{type.stringify.split("::")[-1].id}}' ")
+      def {{property_name.id}}(class_to_join : {{type}}.class, *, alias_as : String? = {{alias_on_join_as}}, extra_join_criteria : String? = " AND #{{{owner_class}}.table_name}.{{polymorphic_type_field.id}} = '{{type.stringify.split("::")[-1].id}}' ")
 
         @join_statements << {
           join_type: @join_type,
@@ -29,10 +29,10 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
   end
 
 
-  macro generate_for_eager_loader(owner_class, config, property_name, aggregate_config, database_mapping)
+  macro generate_for_eager_loader(owner_class, property_name, config, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = owner_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
-    {% local_key_options = database_mapping[:column_names][options[:local_key]]%}
-    {% local_key_type = local_key[:type] %}
+    {% local_key_config = database_mapping[:column_names][config[:local_key]]%}
+    {% local_key_type = local_key_config[:type] %}
     {% local_key = config[:local_key] || "#{slave_class.stringify.split("::").downcase[-1]}_id" %}
     {% foreign_key = config[:foreign_key] || "id" %}
     {% supported_types_ary = config[:supported_types].stringify.split('|').map(&.strip.id) %}
@@ -51,7 +51,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
       }
 
       @resolver_proc = Proc(Shepherd::Model::Collection({{owner_class}}), Nil).new do |collection|
-        #TODO: ideally should read types of fields out of results of db_mapping macro
+
         mapper_by_local_key = {
           {% supported_types_ary_size_flag = supported_types_ary.size %}
           {% iterations_counter_flag = 0 %}
@@ -60,6 +60,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
             {{type.stringify.split("::")[-1]}}: Hash({{local_key_type}}, {{owner_class}}).new(initial_capacity: 20) {{",".id unless iterations_counter_flag == supported_types_ary_size_flag }}
           {% end %}
         }
+
         arrays_of_local_keys = {
           {% supported_types_ary_size_flag = supported_types_ary.size %}
           {% iterations_counter_flag = 0 %}
@@ -71,17 +72,29 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
 
         collection.each do |model|
           if model.{{local_key.id}}
-            arrays_of_local_keys[model.friend_type.not_nil!] << model.{{local_key.id}}.not_nil!
-            mapper_by_local_key[model.friend_type.not_nil!][model.{{local_key.id}}.not_nil!] = model
+            arrays_of_local_keys[model.{{polymorphic_type_field.id}}.not_nil!] << model.{{local_key.id}}.not_nil!
+            mapper_by_local_key[model.{{polymorphic_type_field.id}}.not_nil!][model.{{local_key.id}}.not_nil!] = model
           end
         end
 
         arrays_of_local_keys.each do |name, array_of_local_keys|
           unless array_of_local_keys.empty?
-            child_collection = repositories[name].not_nil!.where({{owner_class}}, { {{foreign_key}}, :in, array_of_local_keys }).execute
-            child_collection.each do |child|
-              mapper_by_local_key[name][child.{{foreign_key.id}}.not_nil!].{{property_name.id}} = child
+            case name
+            {% for type in supported_types_ary%}
+            when {{type.stringify.split("::")[-1].id.symbolize}}
+              child_collection = repositories[name].not_nil!.where(nil, { {{foreign_key}}, :in, array_of_local_keys }).execute
+              child_collection.as(Shepherd::Model::Collection({{type.id}})).each do |child|
+                mapper_by_local_key[name][child.{{foreign_key.id}}.not_nil!].{{property_name.id}} = child
+              end
+            {%end%}
             end
+            #can't convince compiler that this will work:
+            # child_collection = repositories[name].not_nil!.where(nil, { {{foreign_key}}, :in, array_of_local_keys }).execute
+            #
+            # child_collection.not_nil!.each do |child|
+            #   mapper_by_local_key[name][child.{{foreign_key.id}}.not_nil!].{{property_name.id}} = child
+            # end
+
           end
         end
 

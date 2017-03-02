@@ -1,6 +1,6 @@
 class Model::AppDomainBase < Shepherd::Model::Base
 
-  
+
 
   default_repository({
     connection: Shepherd::Database::DefaultConnection,

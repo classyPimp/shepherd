@@ -1,68 +1,20 @@
 require "./models_with_relations_classes/test_domain_base"
 require "./models_with_relations_classes/**"
 
-class DBForAssociationsPreparator
 
-  @single_user : User?
-  @single_account : Account?
-
-  def initialize
-    @connection = Shepherd::Database::DefaultConnection.get
-
-  end
-
-  def prepare_for_plain_relations
-    clear_user_records
-    create_single_user
-
-    clear_account_records
-    create_single_account_that_belongs_to_user
-
-    self
-  end
-
-  def clear_user_records
-    @connection.exec "delete from users"
-  end
-
-  def create_single_user
-    user = User.new
-    user.name = "joe"
-    user.repository.create.execute
-
-    @single_user = user
-  end
-
-
-  def clear_account_records
-    @connection.exec "delete from accounts"
-  end
-
-  def create_single_account_that_belongs_to_user
-    account = Account.new
-    account.name = "account"
-    account.user_id = @single_user.not_nil!.id
-
-    account.repository.create.execute
-
-    @single_account = account
-  end
-
-  def get_user : User
-    @single_user.not_nil!
-  end
-
-  def get_account : Account
-    @single_account.not_nil!
-  end
+class DBHelperBtPoly
 
   @post_node_related_to_post_text : PostNode?
   @post_node_related_to_post_image : PostNode?
   @post_text : PostText?
   @post_image : PostImage?
 
+  def initialize
+    @connection = Shepherd::Database::DefaultConnection.get
 
-  def prepare_for_belongs_to_polymorphic
+  end
+
+  def prepare
     clear_post_texts_records
     clear_post_images_records
     clear_post_nodes_records
@@ -101,7 +53,7 @@ class DBForAssociationsPreparator
 
   def create_post_node_related_to_post_text
     post_node = PostNode.new
-    post_node.node_type = 'PostText'
+    post_node.node_type = "PostText"
     post_node.node_id = @post_text.not_nil!.id
     post_node.repository.create.execute
     @post_node_related_to_post_text = post_node
@@ -109,7 +61,7 @@ class DBForAssociationsPreparator
 
   def create_post_node_related_to_post_image
     post_node = PostNode.new
-    post_node.node_type = 'PostImage'
+    post_node.node_type = "PostImage"
     post_node.node_id = @post_image.not_nil!.id
     post_node.repository.create.execute
     @post_node_related_to_post_image = post_node
