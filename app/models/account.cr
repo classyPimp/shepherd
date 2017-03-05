@@ -15,7 +15,10 @@ class Models::Account < Model::AppDomainBase
   )
 
   associations_config({
-    user: {type: :belongs_to, class_name: Models::User, local_key: "user_id", foreign_key: "id"}
+    user: {
+      type: :belongs_to, class_name: Models::User,
+      local_key: "user_id", foreign_key: "id"
+    }
   })
   # associations_config(
   #   {

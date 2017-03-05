@@ -1,4 +1,4 @@
-class Shepherd::Model::GenerationMacros::HasMany::Through
+class Shepherd::Model::Associations::GenerationMacros::HasMany::Through
 
 
   macro generate_for_join_builder(master_class, property_name, config, aggregate_config, database_mapping)
@@ -9,6 +9,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
     #{% local_key_for_through =  aggregate_config[config[:through]][:local_key] %}
     #{% foreign_key_for_through =  aggregate_config[config[:through]][:foreign_key] %}
     {% through = config[:through] %}
+    {% alias_on_join_as = config[:alias_on_join_as] %}
 
     def {{property_name.id}}(*, alias_as : String? = {{alias_on_join_as}}, extra_join_criteria : String? = nil)
 
@@ -19,7 +20,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
   end
 
 
-  macro generate_for_eager_loader(owner_class, config, aggregate_config, database_mapping)
+  macro generate_for_eager_loader(owner_class, property_name, config, aggregate_config, database_mapping)
 
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
 
@@ -57,7 +58,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
             .execute
 
           child_collection.each do |child|
-            mapper_by_local_key[child.{{foreign_key_for_through.id}}].{{property_name.id}}(load: false) << child
+            mapper_by_local_key[child.{{local_key_for_through.id}}].{{property_name.id}}(load: false) << child
           end
         end
 
@@ -79,11 +80,11 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
   #   this_joined_through: family, # person joins family #this visible #TODO: can be infered
   #   that_joined_through: family_members, #family joins family_members #person visible #TODO: can be infered
   # }
-  macro set(master_class, property_name, config, aggregate_config)
+  macro set(master_class, property_name, config, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
     {% this_joined_through  = config[:this_joined_through] %}
     {% that_joined_through = config[:that_joined_through] %}
-    {% through_class = config[:through_class] %}
+    {% through_class = aggregate_config[config[:through]][:class_name] %}
     {% local_key_for_through =  aggregate_config[config[:through]][:local_key] %}
     {% foreign_key_for_through =  aggregate_config[config[:through]][:foreign_key] %}
 
@@ -95,7 +96,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
 
     {{@type}}.set_getter_overload_to_yield_repository({{property_name}}, {{slave_class}}, {{through_class}}, {{this_joined_through}}, {{that_joined_through}}, {{local_key_for_through}}, {{foreign_key_for_through}})
 
-    {{@type}}.macro_set_setter({{property_name}}, {{slave_class}})
+    {{@type}}.set_setter({{property_name}}, {{slave_class}})
 
 
   end
@@ -114,7 +115,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
       @{{property_name.id}} ||= (
         if @{{ local_key_for_through.id }}
           {{slave_class}}.repository
-            .inner_join(&.{{this_joined_through.id}}
+            .inner_join(&.{{this_joined_through.id}})
             .where({{through_class}}, { {{foreign_key_for_through}}, :eq, self.{{local_key_for_through.id}} })
             .execute
         else
@@ -143,7 +144,7 @@ class Shepherd::Model::GenerationMacros::HasMany::Through
       @{{property_name.id}} ||= (
         yield (
           {{slave_class}}.repository
-            .inner_join(&.{{this_joined_through.id}}
+            .inner_join(&.{{this_joined_through.id}})
             .where({{through_class}}, { {{foreign_key_for_through}}, :eq, self.{{local_key_for_through.id}} })
         )
       )

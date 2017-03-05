@@ -4,7 +4,8 @@ class PostImage < Model::TestDomainBase
     { table_name: "post_images",
       column_names: {
         "id": {type: Int32, primary_key: true},
-        "content": {type: String}
+        "content": {type: String},
+        "post_id": {type: Int32}
       }
     }
   )

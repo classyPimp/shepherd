@@ -4,17 +4,23 @@ class PostText < Model::TestDomainBase
     { table_name: "post_texts",
       column_names: {
         "id": {type: Int32, primary_key: true},
-        "content": {type: String}
+        "content": {type: String},
+        "post_id": {type: Int32}
       }
     }
   )
   #
   #
   associations_config({
+    post_node: {
+      type: :has_one, class_name: PostNode,
+      local_key: "id", foreign_key: "node_id",
+      foreign_polymorphic_type_field: "node_type",
+    },
     post_nodes: {
       type: :has_many, class_name: PostNode,
-      local_key: "id", foreign_key: "node_id"#, as: "PostText",
-      #foreign_polymorphic_field: "node_type"
+      local_key: "id", foreign_key: "node_id",
+      foreign_polymorphic_type_field: "node_type"
     }
   })
 

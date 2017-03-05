@@ -1,7 +1,7 @@
 class Shepherd::Model::Collection(T)
 
-  #include Enumerable(T)
-  #include Indexable(T)
+  include Enumerable(T)
+  include Indexable(T)
 
   property :collection
   @collection : Array(T)

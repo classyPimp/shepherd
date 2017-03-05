@@ -89,7 +89,6 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Plain
 
     {{@type}}.set_setter({{property_name}}, {{slave_class}})
 
-
   end
 
 

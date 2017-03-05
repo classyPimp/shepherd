@@ -1,8 +1,8 @@
 class Account < Model::TestDomainBase
 
-  def self.table_name : String
-    @@table_name
-  end
+  # def self.table_name : String
+  #   @@table_name
+  # end
 
   database_mapping(
     { table_name: "accounts",
@@ -15,7 +15,15 @@ class Account < Model::TestDomainBase
   )
 
   associations_config({
-    user: {type: :belongs_to, class_name: User, local_key: "user_id", foreign_key: "id"}
+    user: {
+      type: :belongs_to, class_name: User,
+      local_key: "user_id", foreign_key: "id"
+    }#,
+    # post: {
+    #   type: :has_one, class_name: Post,
+    #   through: :user, this_joined_through: :user,
+    #   that_joined_through: :post
+    # }
   })
   # associations_config(
   #   {

@@ -8,21 +8,63 @@ class DBHelperBtPoly
   @post_node_related_to_post_image : PostNode?
   @post_text : PostText?
   @post_image : PostImage?
+  @user : User?
+  @post : Post?
 
   def initialize
     @connection = Shepherd::Database::DefaultConnection.get
-
   end
 
   def prepare
-    clear_post_texts_records
-    clear_post_images_records
-    clear_post_nodes_records
+    #clear_user_records
+    create_user
+
+    #clear_post_records
+    create_post
+
+    # clear_post_texts_records
+    # clear_post_images_records
+    # clear_post_nodes_records
 
     create_post_text
     create_post_image
     create_post_node_related_to_post_text
     create_post_node_related_to_post_image
+
+    self
+  end
+
+  def clear_user_records
+    @connection.exec "delete from users"
+  end
+
+  def create_user
+    user = User.new
+    user.name = "joe"
+    user.repository.create.execute
+
+    @user = user
+  end
+
+  def get_user : User
+    @user.not_nil!
+  end
+
+  def clear_post_records
+    @connection.exec "delete from posts"
+  end
+
+  def create_post
+    post = Post.new
+    post.title = "post title"
+    post.user_id = @user.not_nil!.id
+    post.repository.create
+
+    @post = post
+  end
+
+  def get_post : Post
+    @post.not_nil!
   end
 
   def clear_post_texts_records
@@ -55,6 +97,7 @@ class DBHelperBtPoly
     post_node = PostNode.new
     post_node.node_type = "PostText"
     post_node.node_id = @post_text.not_nil!.id
+    post_node.post_id = @post.not_nil!.id
     post_node.repository.create.execute
     @post_node_related_to_post_text = post_node
   end
@@ -63,24 +106,29 @@ class DBHelperBtPoly
     post_node = PostNode.new
     post_node.node_type = "PostImage"
     post_node.node_id = @post_image.not_nil!.id
+    post_node.post_id = @post.not_nil!.id
     post_node.repository.create.execute
     @post_node_related_to_post_image = post_node
   end
 
   def get_post_node_related_to_post_image : PostNode
-    @post_node_related_to_post_image.not_nil!
+    PostNode.repository.where(PostNode, {"id", :in, [@post_node_related_to_post_image.not_nil!.id.not_nil!]})
+    .execute[0].not_nil!
   end
 
   def get_post_node_related_to_post_text : PostNode
-    @post_node_related_to_post_text.not_nil!
+    PostNode.repository.where(PostNode, {"id", :in, [@post_node_related_to_post_text.not_nil!.id.not_nil!]})
+    .execute[0].not_nil!
   end
 
   def get_post_text : PostText
-    @post_text
+    PostText.repository.where(PostText, {"id", :in, [@post_text.not_nil!.id.not_nil!]})
+    .execute[0].not_nil!
   end
 
   def get_post_image : PostImage
-    @post_image
+    PostImage.repository.where(PostImage, {"id", :in, [@post_image.not_nil!.id.not_nil!]})
+    .execute[0].not_nil!
   end
 
 end

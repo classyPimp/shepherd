@@ -1,14 +1,32 @@
-class Models::Post < Model::AppDomainBase
+class Post < Model::TestDomainBase
 
-  # database_mapping(
-  #   { table_name: "posts",
-  #     column_names: {
-  #       "id": {type: Int32, primary_key: true},
-  #       "title": {type: String}
-  #     }
-  #   }
-  # )
+  database_mapping(
+    { table_name: "posts",
+      column_names: {
+        "id": {type: Int32, primary_key: true},
+        "title": {type: String},
+        "user_id": {type: Int32}
+      }
+    }
+  )
   #
+
+  associations_config({
+    user: {
+      type: :belongs_to, class_name: User,
+      local_key: "user_id", foreign_key: "id"
+    },
+    account: {
+      type: :has_one, class_name: Account,
+      through: :user, this_joined_through: :user,
+      that_joined_through: :account#, alias_on_join_as: "user_posts"
+    },
+    accounts: {
+      type: :has_many, class_name: Account,
+      through: :user, this_joined_through: :user,
+      that_joined_through: :account
+    }
+  })
   # associations_config({
   #   post_nodes: {
   #     type: :has_many, class_name: Models::PostNode,

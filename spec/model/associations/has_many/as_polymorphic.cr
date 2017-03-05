@@ -5,30 +5,28 @@ require "../../database_preparation/db_helper"
 module Associations
   module HasMany
 
-
     db_helper = DBHelper.instance
-
     describe "Plain" do
 
       describe "#relations" do
 
         it "should query dependent and return collection of dependents" do
 
-          db_helper.fetch_user.accounts.should be_a(
-            Shepherd::Model::Collection(Account)
+          db_helper.fetch_post_text.post_nodes.should be_a(
+            Shepherd::Model::Collection(PostNode)
           )
         end
 
         it "returned collection's first index value should be related model" do
 
-          db_helper.fetch_user.accounts[-1].not_nil!.should be_a(
-            Account
+          db_helper.fetch_post_text.post_nodes[-1].not_nil!.should be_a(
+            PostNode
           )
         end
 
         it "queries and returns all realted models" do
 
-          size = db_helper.fetch_user.accounts.size
+          size = db_helper.fetch_post_text.post_nodes.size
           size.should eq(2)
         end
 
@@ -38,14 +36,14 @@ module Associations
 
         it "should return collection of related values anyway" do
 
-          db_helper.fetch_user.accounts(load: false).should be_a(
-            Shepherd::Model::Collection(Account)
+          db_helper.fetch_post_text.post_nodes(load: false).should be_a(
+            Shepherd::Model::Collection(PostNode)
           )
         end
 
         it "should not load related model" do
 
-          db_helper.fetch_user.accounts(load: false)[0]?.should be_a(
+          db_helper.fetch_post_text.post_nodes(load: false)[0]?.should be_a(
             Nil
           )
         end
@@ -56,19 +54,19 @@ module Associations
 
         it "returns repository#where : QueryBuilder of related model" do
 
-          db_helper.fetch_user.accounts(yield_repository: true) do |repo|
-            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(Shepherd::Database::DefaultConnection, Account))
+          db_helper.fetch_post_text.post_nodes(yield_repository: true) do |repo|
+            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(Shepherd::Database::DefaultConnection, PostNode))
           end
         end
 
         it "when #execute called on repository returned value should be assigned to #relations" do
 
-          user = db_helper.fetch_user
-          user.accounts(yield_repository: true) do |repo|
+          post_text = db_helper.fetch_post_text
+          post_text.post_nodes(yield_repository: true) do |repo|
             repo.execute
           end
-
-          user.accounts(load: false)[0].not_nil!.should be_a(Account)
+          
+          post_text.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
         end
 
       end
@@ -78,12 +76,12 @@ module Associations
         it "should validly join related model" do
 
 
-          User.repository
-            .inner_join(&.accounts)
-            .where(Account, {"name", :eq, "account"})
+          PostText.repository
+            .inner_join(&.post_nodes)
+            .where(PostNode, {"node_type", :eq, "PostText"})
             .execute[0]
             .not_nil!
-            .should be_a(User)
+            .should be_a(PostText)
 
         end
 
@@ -94,12 +92,12 @@ module Associations
         it "should eagerly load related models" do
 
 
-          user = User.repository
-                  .where(User, {"name", :eq, "joe"})
-                  .eager_load(&.accounts)
+          post_text = PostText.repository
+                  .where(PostText, {"content", :eq, "post text"})
+                  .eager_load(&.PostNodes)
                   .execute[0].not_nil!
 
-          user.accounts(load: false)[0].not_nil!.should be_a(Account)
+          user.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
 
         end
 
