@@ -7,11 +7,11 @@ module Associations
 
     db_helper = DBHelper.instance
 
-    describe "Plain" do
+    describe "belongs_to (plain)" do
 
       describe "#relation" do
-
-        it "should query dependent and return dependent" do
+        
+        it "should query dependent and assign it to property" do
 
           db_helper.fetch_account.user.not_nil!.should be_a(
             User
@@ -22,7 +22,7 @@ module Associations
 
       describe "#relations(load: false)" do
 
-        it "should not load related model" do
+        it "should not load related model and return property" do
 
           db_helper.fetch_account.user(load: false).should be_nil
         end

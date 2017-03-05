@@ -20,8 +20,11 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(ConnectionGetter
   end
 
 
-  def initialize(@owner_model : T, *field_names : String)
-    @insert_into_column_names = field_names
+  def initialize(@owner_model : T, *, save_only field_names : Array(String))
+    @insert_into_column_names = Array(String).new
+    field_names.each do |column_name|
+      @insert_into_column_names << column_name
+    end
   end
 
 
@@ -30,8 +33,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Create(ConnectionGetter
 
     @query_to_execute = build_query
     @values_to_insert = get_values_to_insert
-    p @query_to_execute
-    p @values_to_insert
+
     returning_id = ConnectionGetterT.get.scalar(@query_to_execute.not_nil!, @values_to_insert).as(Int32)
 
     if returning_id

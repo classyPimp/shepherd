@@ -6,12 +6,11 @@ module Associations
   module HasMany
 
     db_helper = DBHelper.instance
-    describe "Plain" do
+    describe "has_many (as polymorphic)" do
 
       describe "#relations" do
 
         it "should query dependent and return collection of dependents" do
-
           db_helper.fetch_post_text.post_nodes.should be_a(
             Shepherd::Model::Collection(PostNode)
           )
@@ -27,7 +26,8 @@ module Associations
         it "queries and returns all realted models" do
 
           size = db_helper.fetch_post_text.post_nodes.size
-          size.should eq(2)
+          size.should eq(1)
+
         end
 
       end
@@ -65,7 +65,7 @@ module Associations
           post_text.post_nodes(yield_repository: true) do |repo|
             repo.execute
           end
-          
+
           post_text.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
         end
 
@@ -93,11 +93,11 @@ module Associations
 
 
           post_text = PostText.repository
-                  .where(PostText, {"content", :eq, "post text"})
-                  .eager_load(&.PostNodes)
-                  .execute[0].not_nil!
+            .where(PostText, {"content", :eq, "post text"})
+            .eager_load(&.post_nodes)
+            .execute[0].not_nil!
 
-          user.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
+          post_text.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
 
         end
 

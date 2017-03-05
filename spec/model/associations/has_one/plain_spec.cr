@@ -7,8 +7,8 @@ module Associations
 
     db_helper =  DBHelper.instance
 
-    describe "Plain" do
-
+    describe "has_one (plain)" do
+      
       describe "#relation" do
 
         it "should query dependent and assign dependent to #relation" do

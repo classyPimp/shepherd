@@ -8,7 +8,7 @@ module Associations
 
     db_helper = DBHelper.instance
 
-    describe "Plain" do
+    describe "has_many (plain)" do
 
       describe "#relations" do
 

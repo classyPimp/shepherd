@@ -8,7 +8,8 @@ class User < Model::TestDomainBase
         "email": {type: String},
         "user_id": {type: Int32},
         "friend_type": {type: String},
-        "friend_id": {type: Int32}
+        "friend_id": {type: Int32},
+        "age": {type: Int32}
       }
     }
   )

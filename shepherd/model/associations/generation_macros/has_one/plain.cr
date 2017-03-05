@@ -65,14 +65,53 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
 
 
 
-  #has many plain; direct relation
-  # posts: {
-  #   type: :has_many,
-  #   class_name: Models::Post, #TODO: can be infered
-  #   local_key: "id", #TODO: can be infered
-  #   foreign_key: "user_id" #TODO: can be infered
-  # }
-
+  # has one plain; direct relation
+  # +--------------+          +-------------+
+  # | User         |          | Account     |
+  # |              |          |             |
+  # | id: 10 +----------+     | id: 99      |
+  # |              |    +------>user_id: 10 |
+  # |              |          |             |
+  # +--------------+          +-------------+
+  # ```crystal
+  # post: {
+  #   #required
+  #   type: :has_one,
+  #
+  #   # required: class of associated model
+  #   class_name: Models::Post,
+  #
+  #   #required: database field on this model, referencing to associated model
+  #   local_key: "id",
+  #
+  #   #required : database field on associated model referencing to this model
+  #   foreign_key: "user_id",
+  #
+  #   #optional : alias that will be used when associated is joined
+  #   #eg if user has one user, db will complain that users table was referenced more than once when join(&.user) is called,
+  #   #if you provide alias, no conflict will be raised.
+  #   alias_on_join_as: "user_posts"
+  #  }
+  # ```
+  # user.account(load: false) #=> nil
+  # user.account #=> queries and sets to property will return Account instance
+  #
+  # user.account(yield_repository: true) do |repo|
+  #   repo.select("id", "name", "user_id").execute[0]?
+  # end
+  # user.account(load: false) #=> Account instance
+  #
+  # User.repository.join(&.account)
+  #  .where(Account, {"banned", :eq, false})
+  #  .execute
+  #
+  # eager loading:
+  # users = User.repository
+  #  .where("karama", :gt, 100)
+  #  .eager_load(&.account)
+  #  .execute
+  # users[0].account(load: false) #=> Account instance
+  #
   macro set(master_class, property_name, config, aggregate_config, database_mapping)
     {% slave_class = config[:class_name] || (x = master_class.stringify.split("::"); x[-1] = property_name.id.stringify.camelcase; x.join("::").id) %}
     {% local_key = config[:local_key] || "id" %}

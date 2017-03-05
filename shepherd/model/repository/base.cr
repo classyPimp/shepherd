@@ -2,7 +2,7 @@ class Shepherd::Model::Repository::Base(AdapterT, ConnectionGetterT, T)
 
   @owner_model : T?
   property :owner_model
-  
+
   def initialize(@owner_model : T)
   end
 
@@ -14,8 +14,8 @@ class Shepherd::Model::Repository::Base(AdapterT, ConnectionGetterT, T)
     AdapterT::Create( ConnectionGetterT, T ).new(@owner_model.as(T))
   end
 
-  def create(*field_names) : Shepherd::QueryBuilder::Interfaces::Create
-    AdapterT::Create( ConnectionGetterT, T ).new(@owner_model.as(T), *field_names)
+  def create(*, save_only field_names : Array(String))
+    AdapterT::Create( ConnectionGetterT, T ).new(@owner_model.as(T), save_only: field_names)
   end
 
   def where(prefix, *args)
@@ -28,6 +28,10 @@ class Shepherd::Model::Repository::Base(AdapterT, ConnectionGetterT, T)
 
   def init_where
     AdapterT::Where( ConnectionGetterT, T).new
+  end
+
+  def find(id : Int32)
+    AdapterT::Where( ConnectionGetterT, T).new.where({"id", :eq, id}).limit(1)
   end
 
 end

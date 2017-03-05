@@ -1,32 +1,42 @@
 require "../../interfaces/where"
-
+#works like waterfall.
+#will build statements as you call them
 class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT, T)
   #TODO SHOULD CLOSE STRINGBUILDERS OF UNCALLED PARTS ON FINALIZATION OR IN EXECUTE
   #TODO WRITE INTERFACE WITH ALL NECESSARY ABSTRACT METHODS
   include Shepherd::Model::QueryBuilder::Interfaces::Where
 
+  #these will be passed as args with finaly built query
   @statement_args : Array(DB::Any)
   @statement_args = Array(DB::Any).new(20)
 
+  #when where statements will be assembled, these would go
+  #to @statement_args
   @where_statement_args : Array(DB::Any)
   @where_statement_args = Array(DB::Any).new(20)
 
+  #user in #place_holder, refer there
   @pg_placeholder_counter : Int32
   @pg_placeholder_counter = 0
 
+  #acts as flag
   @where_called : Bool
   @where_called = false
 
+  #acts as flag
   @or_called : Bool
   @or_called = false
 
+  #acts as flag
   @select_called : Bool
   @select_called = false
 
+  #acts as flag
   @from_called : Bool
   @from_called = false
 
   #TODO REFACTOR WITH LAZY INITIALIZED GETTERS
+  #TODO if where not used, streams should be closed
   @where_part_string_builder : String::Builder
   @where_part_string_builder = String::Builder.new
 
@@ -36,6 +46,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   @from_part_string_builder : String::Builder
   @from_part_string_builder = String::Builder.new
 
+  #acts as flag
   @join_called : Bool
   @join_called = false
 
@@ -47,14 +58,12 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   @eager_load_called : Bool
   @eager_load_called = false
 
+  #eager loaders which all will be called, as soon as final query executed
+  #passing them the parse collection of T
   @eager_loaders : Array(Shepherd::Model::EagerLoaderInterface)?
-
+  #getter
   def eager_loaders
-    @eager_loaders ||= Array(Shepherd::Model::EagerLoaderInterface).new(10)
-  end
-
-  def helpers
-    Helpers
+    @eager_loaders ||= Array(Shepherd::Model::EagerLoaderInterface).new(5)
   end
 
   def initialize
@@ -64,6 +73,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
 
   #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
+  #TODO: write overload that does not prefix, for passing e.g. select("aliasedusers.foo")
   def select(prefix : (String | Shepherd::Model::Base.class | Nil), *args : String)
 
     prefix = resolve_table_name_prefix(prefix)
@@ -81,7 +91,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
   end
 
-
+  #simply will use passed value in select statement when finalized
   def from(table_name)
     @from_called = true
     @from_part_string_builder << table_name << ' '
@@ -89,8 +99,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   end
 
 
-  #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
-  #Tuple(String, Symbol, DB::Any)
+  #where builder
   def where(prefix : (String | Shepherd::Model::Base.class | Nil), *args : Tuple(String, Symbol, DB::Any))
 
     prefix = resolve_table_name_prefix(prefix)
@@ -100,20 +109,26 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     @where_called = true
 
     @where_part_string_builder << '('
-    args.each do |triple|
-      case triple[1]
+    args.each do |triplet|
+      case triplet[1]
       when :eq
         @where_part_string_builder << ' ' << prefix << '.'
-        @where_part_string_builder << triple[0] << " = $#{place_holder} "
-      # when :in
-      #   @where_part_string_builder << ' ' << prefix << '.'
-      #   @where_part_string_builder << triple[0] << " in ($#{place_holder}) "
+        @where_part_string_builder << triplet[0] << " = $#{place_holder} "
+      when :gt
+        @where_part_string_builder << ' ' << prefix << '.'
+        @where_part_string_builder << triplet[0] << " > $#{place_holder} "
+      when :lt
+        @where_part_string_builder << ' ' << prefix << '.'
+        @where_part_string_builder << triplet[0] << " < $#{place_holder} "
+      else
+        raise "unsupported operator: #{triplet[1]} in where statement"
       end
       @where_part_string_builder << "AND"
 
-      @where_statement_args << triple[2]
+      @where_statement_args << triplet[2]
 
     end
+    #if several wheres called moves pointer voiding last AND
     @where_part_string_builder.back(4)
     @where_part_string_builder << ") "
 
@@ -121,8 +136,13 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
   end
 
+  #where overload that sets default prefix for table_name
+  def where(*args : Tuple(String, Symbol, DB::Any))
+    self.where(nil, *args)
+  end
+
   #resolves table name prefix used in methods that add to statements
-  def resolve_table_name_prefix(prefix : (String | Shepherd::Model::Base.class | Nil)) : String?
+  private def resolve_table_name_prefix(prefix : (String | Shepherd::Model::Base.class | Nil)) : String?
     case prefix
     when String
       nil
@@ -164,17 +184,28 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
   end
 
+  #overload that infers the tablename (prefix) without providing it
+  #to call where (IN)
+  def where(triplet : Tuple(String, Symbol, Array))
+    self.where(nil, triplet)
+  end
 
+  #TODO: should scan for ? place_holders and insert next in sequence
+  #currently user has to provide himself
   def where(raw_query : String, *args : DB::Any)
-    @where_part_string_builder << raw_query << ' '
-    #TODO: should push args to where args
+    insert_where_and_or_nil
+    @where_called = true
+    @where_part_string_builder << ' ' << raw_query << ' '
+    args.each do |arg|
+      @where_statement_args << arg
+    end
     self
   end
 
-  #where overload that sets default prefix for table_name
-  def where(*args : Tuple(String, Symbol, DB::Any))
-    self.where(nil, *args)
-  end
+  # def raw(*, inner_join : String, *args : DB::Any )
+  #
+  # end
+
 
   #TODO: REFACTOR prefix should be model class , and  prefix should be fetched from .table_name
   def or(prefix, *args)
@@ -185,14 +216,21 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     self
   end
 
+  #overload to infer prefix automaticvally
+  def or(*args)
+    or(nil, *args)
+  end
 
+  #builds limit statement
+  #several calls will overwrite
   def limit(value : Int32)
     @limit_clause = " LIMIT #{value}"
     self
   end
 
-
-  def insert_where_and_or_nil : Nil
+  #decides depending on what was called
+  #wherer to insert WHERE || nil || AND
+  private def insert_where_and_or_nil : Nil
     if !@where_called
       @where_part_string_builder << "WHERE "
     elsif @or_called
@@ -202,8 +240,8 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     end
   end
 
-
-  def build_query
+  #finalizing methods builds final query that'll be executed
+  private def build_query
     resulting_query = String.build do |query|
       query << finalize_select_part
       query << finalize_from_part
@@ -218,82 +256,90 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     resulting_query.to_s
   end
 
-  def execute
-
+  #calls the finaling statement builder method
+  #and executes it against DB,
+  #calls the result parser
+  #returns the Collection(T)
+  def execute : Shepherd::Model::Collection(T)
     query = build_query
     #TODO: Should print to logger when logger will be implemented
-    p query
-    p @statement_args
-
+    # p query
+    # p @statement_args
     collection_to_return = ConnectionGetterT.get.query(query, @statement_args) do |result_set|
       T.parse_db_result_set(result_set)
     end
 
+    #calls the eager loaders, loading models assigning them to
+    #ones in upper parsed collection
     if @eager_load_called
       eager_loaders.each do |eager_loader|
         eager_loader.as(T::EagerLoader).resolve(collection_to_return.as(Shepherd::Model::Collection(T)))
       end
     end
 
-    collection_to_return
+    return collection_to_return
 
   end
 
+  #used for devuggin purposes
   def to_sql_string
     build_query
   end
 
+  #used for debugging purposes
   def puts_sql_query_and_statements : Nil
     puts build_query
     puts @statement_args
   end
 
-
-  def place_holder : Int32
+  #used for PG only, keeps track of place_holders
+  #resembling to appropriate index in statement args
+  private def place_holder : Int32
     @pg_placeholder_counter += 1
     @pg_placeholder_counter
   end
 
-
+  #if no select called this will be passed
   def default_select : String
     " #{T.table_name}.*"
   end
 
-
+  #if no from called this will passed
   def default_from : String
     T.table_name#.as(String)
   end
 
-
-  def finalize_select_part : String
+  #name says it all
+  private def finalize_select_part : String
     unless @select_called
       @select_part_string_builder << default_select
     end
     @select_part_string_builder.to_s
   end
 
-
-  def finalize_from_part : String
+  #name says it all
+  private def finalize_from_part : String
     unless @from_called
       @from_part_string_builder << " #{self.default_from} "
     end
     @from_part_string_builder.to_s
   end
 
-
-  def finalize_join_part : String
+  #name says it all
+  private def finalize_join_part : String
     @join_part_string_builder.to_s
   end
 
-
-  def finalize_where_part : String
+  #name says it all
+  private def finalize_where_part : String
     @where_statement_args.each do |arg|
       @statement_args << arg
     end
     @where_part_string_builder.to_s
   end
 
-
+  #joins the associations that where defined.
+  #yilded join builders can chain their join builders and etc.
   def inner_join(&block) : self
     @join_called = true
     join_builder = yield T::JoinBuilder.new(Shepherd::Model::JoinBuilderBase::JoinTypesEnum::Inner)
@@ -346,7 +392,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
   end
 
-
+  #loads the selected
   def eager_load(&block : T::EagerLoader -> Nil)
     @eager_load_called = true
 
