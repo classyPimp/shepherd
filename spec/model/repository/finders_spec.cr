@@ -71,6 +71,19 @@ describe "#repository.where" do
     end
   end
 
+  describe "inner_join(raw_join_statement):" do
+    it  "joins non conflictly" do
+      p ""
+      p ""
+      p user = User.repository
+        .where({"id", :gt, 0})
+        .inner_join(&.accounts)
+        .raw_join("INNER JOIN accounts foos on foos.user_id = users.id")
+        .execute
+
+    end
+  end
+
 end
 
 describe "#repository.find" do
@@ -80,7 +93,7 @@ describe "#repository.find" do
       user.name = "awdgvasdv"
       user.repository.create
 
-    that_user = User.repository.find(user.id.not_nil!).execute[0]?
+    that_user = User.repository.find(user.id.not_nil!)[0]?
     that_user.should be_a(User)
   end
 

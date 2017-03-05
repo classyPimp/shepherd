@@ -31,7 +31,7 @@ class Shepherd::Model::Repository::Base(AdapterT, ConnectionGetterT, T)
   end
 
   def find(id : Int32)
-    AdapterT::Where( ConnectionGetterT, T).new.where({"id", :eq, id}).limit(1)
+    AdapterT::Where( ConnectionGetterT, T).new.where({"id", :eq, id}).limit(1).execute
   end
 
 end

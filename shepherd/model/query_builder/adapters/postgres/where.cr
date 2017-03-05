@@ -260,6 +260,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   #and executes it against DB,
   #calls the result parser
   #returns the Collection(T)
+  #TODO: think maybe #get instead of execute is better idea (at least for Where)
   def execute : Shepherd::Model::Collection(T)
     query = build_query
     #TODO: Should print to logger when logger will be implemented
@@ -300,6 +301,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   end
 
   #if no select called this will be passed
+  #is used outside so public (in join builders I guess)
   def default_select : String
     " #{T.table_name}.*"
   end
@@ -353,7 +355,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
       table_name_or_alias = statement[:alias_as] ? statement[:alias_as] : statement[:class_to_join].table_name.as(String)
 
-      @join_part_string_builder << "#{statement[:class_to_join].table_name.as(String)} #{statement[:alias_as] ? statement[:alias_as] : nil} on #{statement[:parent].table_name.as(String)}.#{statement[:parent_column]} = #{table_name_or_alias}.#{statement[:class_to_join_column]} "
+      @join_part_string_builder << "#{statement[:class_to_join].table_name.as(String)} #{(statement[:alias_as] ? statement[:alias_as] : nil)} on #{statement[:parent].table_name.as(String)}.#{statement[:parent_column]} = #{table_name_or_alias}.#{statement[:class_to_join_column]} "
       if statement[:extra_join_criteria]
         @join_part_string_builder << statement[:extra_join_criteria]
       end
@@ -365,6 +367,7 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
   #not used started to implement but refused to continue
   #if join builder returns statement with extra_join_criteria, this method adds this criterias to @join_builder
+  #now the raw statement is passed which can conflict between adapters
   def add_extra_join_if_any(extra_join : Array(Tuple(Symbol, String, Symbol, DB::Any))?) : Nil
 
     if extra_join
@@ -392,6 +395,11 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
 
   end
 
+  def raw_join(raw_join_statement : String)
+    @join_called = true
+    @join_part_string_builder << raw_join_statement
+    self
+  end
   #loads the selected
   def eager_load(&block : T::EagerLoader -> Nil)
     @eager_load_called = true
