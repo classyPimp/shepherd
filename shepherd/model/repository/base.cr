@@ -11,11 +11,11 @@ class Shepherd::Model::Repository::Base(AdapterT, ConnectionGetterT, T)
   end
 
   def create
-    AdapterT::Create( ConnectionGetterT, T ).new(@owner_model.as(T))
+    AdapterT::Create( ConnectionGetterT, T ).new(@owner_model.as(T)).execute
   end
 
   def create(*, save_only field_names : Array(String))
-    AdapterT::Create( ConnectionGetterT, T ).new(@owner_model.as(T), save_only: field_names)
+    AdapterT::Create( ConnectionGetterT, T ).new(@owner_model.as(T), save_only: field_names).execute
   end
 
   def where(prefix, *args)

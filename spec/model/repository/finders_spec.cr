@@ -7,11 +7,11 @@ describe "#repository.where" do
   it "returns collection of model if found any" do
      user = User.new
      user.name = "asdasd"
-     user.repository.create.execute
+     user.repository.create
 
      user = User.new
      user.name = "asdasd"
-     user.repository.create.execute
+     user.repository.create
 
      users = User.repository
       .where({"name", :eq, "asdasd"})
@@ -35,7 +35,7 @@ describe "#repository.where" do
 
     user = User.new
     user.age = 30
-    user.repository.create.execute
+    user.repository.create
 
     that_user = User.repository
       .where({"age", :gt, user.age.not_nil! - 1})
@@ -49,7 +49,7 @@ describe "#repository.where" do
 
     user = User.new
     user.age = 20
-    user.repository.create.execute
+    user.repository.create
 
     that_user = User.repository
       .where({"age", :lt, user.age.not_nil! + 1})
@@ -78,7 +78,7 @@ describe "#repository.find" do
   it "returns the model if found" do
     user = User.new
       user.name = "awdgvasdv"
-      user.repository.create.execute
+      user.repository.create
 
     that_user = User.repository.find(user.id.not_nil!).execute[0]?
     that_user.should be_a(User)

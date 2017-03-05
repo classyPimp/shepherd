@@ -2,12 +2,12 @@ require "../database_preparation/db_helper"
 
 db_helper = DBHelper.instance
 
-describe "#repository.create.execute" do
+describe "#repository.create" do
   it "creates model, saving all the dbfield properties that it has" do
     user = User.new
     user.name = "joe schmoe"
     user.email = "joe@schmoe.com"
-    user.repository.create.execute
+    user.repository.create
 
     user = User.repository.where({"name", :eq, "joe schmoe"})
       .limit(1)
@@ -21,7 +21,7 @@ describe "#repository.create.execute" do
     user = User.new
     user.name = "joe schmoe"
     user.email = "joe@schmoe.com"
-    user.repository.create.execute
+    user.repository.create
 
     user.id.should be_a(Int32)
   end
@@ -32,7 +32,7 @@ describe "#repository.create.execute" do
     user.email = "joe2nd@schmoe.com"
 
     user.repository
-    .create(save_only: ["name"]).execute
+    .create(save_only: ["name"])
 
     user = User.repository.where({"name", :eq, "joe schmoe the2nd"})
       .limit(1)
