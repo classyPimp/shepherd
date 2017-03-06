@@ -53,6 +53,8 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
   @join_part_string_builder : String::Builder
   @join_part_string_builder = String::Builder.new
 
+  @order_clause : String?
+
   @limit_clause : String?
 
   @eager_load_called : Bool
@@ -228,6 +230,21 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
     self
   end
 
+
+  def order_by(column_name : String, type : Symbol, *, prefix : String = T.table_name)
+    @order_clause = String.build do |str|
+      str << " ORDER BY #{T.table_name}.#{column_name} "
+      case type
+      when :desc
+        str << "DESC "
+      when :asc
+        str << "ASC "
+      else
+        raise "unknown argument in order clause"
+      end
+    end
+    self
+  end
   #decides depending on what was called
   #wherer to insert WHERE || nil || AND
   private def insert_where_and_or_nil : Nil
@@ -249,6 +266,9 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(ConnectionGetterT
         query << finalize_join_part
       end
       query << finalize_where_part
+      if @order_clause
+        query << @order_clause
+      end
       if @limit_clause
         query << @limit_clause
       end
