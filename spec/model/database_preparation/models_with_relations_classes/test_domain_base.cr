@@ -6,6 +6,10 @@ class Model::TestDomainBase < Shepherd::Model::Base
     connection: Shepherd::Database::DefaultConnection,
     adapter: :Postgres
   })
+
+  def self.n_where : Shepherd::Model::QueryBuilder::Adapters::Postgres::WhereN(Shepherd::Database::DefaultConnection, self)
+    return Shepherd::Model::QueryBuilder::Adapters::Postgres::WhereN(Shepherd::Database::DefaultConnection, self).new
+  end
   #
   # add_repository(
   #   accessor_method: mysql_secondary_repository,
