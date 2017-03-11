@@ -9,7 +9,7 @@ module Associations
     db_helper = DBHelper.instance
 
     describe "has_one (through)" do
-    
+
       describe "#relation" do
 
         it "should query dependent and assign dependent to #relation" do
@@ -29,19 +29,19 @@ module Associations
 
       end
 
-      describe "#realation(yield_repository: true, &block)" do
+      describe "#realation(yield_repo: true, &block)" do
 
-        it "returns repository#where : QueryBuilder of related model" do
+        it "returns repo#where : QueryBuilder of related model" do
 
-          db_helper.fetch_post.account(yield_repository: true) do |repo|
-            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(Shepherd::Database::DefaultConnection, Account))
+          db_helper.fetch_post.account(yield_repo: true) do |repo|
+            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Repository(Shepherd::Database::DefaultConnection, Account))
           end
         end
 
-        it "when #execute called on repository returned value should be assigned to #relation" do
+        it "when #get called on repo returned value should be assigned to #relation" do
           post = db_helper.fetch_post
-          post.account(yield_repository: true) do |repo|
-            res = repo.execute
+          post.account(yield_repo: true) do |repo|
+            res = repo.get
             res[0]?
           end
           post.account(load: false).not_nil!.should be_a(Account)
@@ -49,15 +49,15 @@ module Associations
       end
 
 
-      describe "RELATION JOIN #repository#where.inner_join(&.relation)" do
+      describe "RELATION JOIN #repo#where.inner_join(&.relation)" do
 
         it "should validly join related model" do
 
 
-          post = Post.repository
+          post = Post.repo
             .inner_join(&.account)
             .where(Account, {"name", :eq, "account"})
-            .execute[0]
+            .get[0]
             .not_nil!
 
           post.account.not_nil!.name.should eq("account")
@@ -66,15 +66,15 @@ module Associations
 
       end
 
-      describe "RELATION EAGER LOADING #repository#eager_load(&.relation)" do
+      describe "RELATION EAGER LOADING #repo#eager_load(&.relation)" do
 
         it "should eagerly load related models" do
 
 
-          post = Post.repository
+          post = Post.repo
                   .where(Post, {"title", :eq, "post title"})
                   .eager_load(&.account)
-                  .execute[0].not_nil!
+                  .get[0].not_nil!
 
           post.account(load: false).not_nil!.should be_a(Account)
 

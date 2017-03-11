@@ -16,10 +16,10 @@ class Shepherd::Model::Base
   include Shepherd::Model::Repository::ModulesForModel::ConfigurationMacros
 
   #TODO : implement repository interface
-  def repository : Shepherd::Model::Repository::Base
+  def repo : Shepherd::Model::Repository::Base
   end
 
-  def self.repository : Shepherd::Model::Repository::Base
+  def self.repo : Shepherd::Model::Repository::Base
   end
 
 end

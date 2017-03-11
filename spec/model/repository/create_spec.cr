@@ -2,16 +2,16 @@ require "../database_preparation/db_helper"
 
 db_helper = DBHelper.instance
 
-describe "#repository.create" do
+describe "#repo.create" do
   it "creates model, saving all the dbfield properties that it has" do
     user = User.new
     user.name = "joe schmoe"
     user.email = "joe@schmoe.com"
-    user.repository.create
+    user.repo.create
 
-    user = User.repository.where({"name", :eq, "joe schmoe"})
+    user = User.repo.where({"name", :eq, "joe schmoe"})
       .limit(1)
-      .execute[0].not_nil!
+      .get[0].not_nil!
 
     user.name.should eq("joe schmoe")
     user.email.should eq("joe@schmoe.com")
@@ -21,7 +21,7 @@ describe "#repository.create" do
     user = User.new
     user.name = "joe schmoe"
     user.email = "joe@schmoe.com"
-    user.repository.create
+    user.repo.create
 
     user.id.should be_a(Int32)
   end
@@ -31,14 +31,24 @@ describe "#repository.create" do
     user.name = "joe schmoe the2nd"
     user.email = "joe2nd@schmoe.com"
 
-    user.repository
-    .create(save_only: ["name"])
+    user.repo
+    .create("name")
 
-    user = User.repository.where({"name", :eq, "joe schmoe the2nd"})
+    user = User.repo.where({"name", :eq, "joe schmoe the2nd"})
       .limit(1)
-      .execute[0].not_nil!
+      .get[0].not_nil!
 
     user.name.should eq("joe schmoe the2nd")
     user.email.should eq(nil)
   end
+
+  # it "NEWRPO" do
+  #   user = User.new
+  #   user.name = "foo"
+  #   repo = Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(
+  #     Shepherd::Database::DefaultConnection,
+  #     User
+  #   ).new(user).create("name", "email")
+  # end
+
 end

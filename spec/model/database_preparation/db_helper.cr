@@ -45,7 +45,7 @@ class DBHelper
   def create_user
     user = User.new
     user.name = "joe"
-    user.repository.create
+    user.repo.create
     user
   end
 
@@ -54,7 +54,7 @@ class DBHelper
     account.name = name
     account.user_id = @user.not_nil!.id
 
-    account.repository.create
+    account.repo.create
 
     account
   end
@@ -63,7 +63,7 @@ class DBHelper
     post = Post.new
     post.title = "post title"
     post.user_id = @user.not_nil!.id
-    post.repository.create
+    post.repo.create
 
     post
   end
@@ -71,14 +71,14 @@ class DBHelper
   def create_post_text
     post_text = PostText.new
     post_text.content = "post text"
-    post_text.repository.create
+    post_text.repo.create
     post_text
   end
 
   def create_post_image
     post_image = PostImage.new
     post_image.content = "post image"
-    post_image.repository.create
+    post_image.repo.create
     post_image
   end
 
@@ -87,7 +87,7 @@ class DBHelper
     post_node.node_type = "PostText"
     post_node.node_id = @post_text.not_nil!.id
     post_node.post_id = @post.not_nil!.id
-    post_node.repository.create
+    post_node.repo.create
 
     post_node
   end
@@ -97,7 +97,7 @@ class DBHelper
     post_node.node_type = "PostImage"
     post_node.node_id = @post_image.not_nil!.id
     post_node.post_id = @post.not_nil!.id
-    post_node.repository.create
+    post_node.repo.create
 
     post_node
   end
@@ -105,48 +105,48 @@ class DBHelper
 
 
   def fetch_post : Post
-    Post.repository.where(Post, {"id", :in, [@post.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    Post.repo.where(Post, {"id", :in, [@post.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
   def fetch_user : User
-    User.repository.where(User, {"id", :in, [@user.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    User.repo.where(User, {"id", :in, [@user.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
   def fetch_account : Account
-    Account.repository.where(Account, {"id", :in, [@account.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    Account.repo.where(Account, {"id", :in, [@account.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
   def fetch_second_account : Account
-    Account.repository.where(Account, {"id", :in, [@second_account.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    Account.repo.where(Account, {"id", :in, [@second_account.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
   def fetch_post : Post
-    Post.repository.where(Post, {"id", :in, [@post.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    Post.repo.where(Post, {"id", :in, [@post.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
   def fetch_post_text : PostText
-    PostText.repository.where(PostText, {"id", :in, [@post_text.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    PostText.repo.where(PostText, {"id", :in, [@post_text.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
   def fetch_post_image : PostImage
-    PostImage.repository.where(PostImage, {"id", :in, [@post_image.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    PostImage.repo.where(PostImage, {"id", :in, [@post_image.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
   def fetch_post_node_btp_post_text : PostNode
-    PostNode.repository.where(PostNode, {"id", :in, [@post_node_btp_post_text.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    PostNode.repo.where(PostNode, {"id", :in, [@post_node_btp_post_text.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
   def fetch_post_node_btp_post_image : PostNode
-    PostNode.repository.where(PostNode, {"id", :in, [@post_node_btp_post_image.not_nil!.id.not_nil!]})
-    .execute[0].not_nil!
+    PostNode.repo.where(PostNode, {"id", :in, [@post_node_btp_post_image.not_nil!.id.not_nil!]})
+    .get[0].not_nil!
   end
 
 

@@ -52,20 +52,20 @@ module Associations
 
       end
 
-      describe "#realations(yield_repository: true, &block)" do
+      describe "#realations(yield_repo: true, &block)" do
 
-        it "returns repository#where : QueryBuilder of related model" do
+        it "returns repo#where : QueryBuilder of related model" do
 
-          db_helper.fetch_user.accounts(yield_repository: true) do |repo|
-            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(Shepherd::Database::DefaultConnection, Account))
+          db_helper.fetch_user.accounts(yield_repo: true) do |repo|
+            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Repository(Shepherd::Database::DefaultConnection, Account))
           end
         end
 
-        it "when #execute called on repository returned value should be assigned to #relations" do
+        it "when #get called on repo returned value should be assigned to #relations" do
 
           user = db_helper.fetch_user
-          user.accounts(yield_repository: true) do |repo|
-            repo.execute
+          user.accounts(yield_repo: true) do |repo|
+            repo.get
           end
 
           user.accounts(load: false)[0].not_nil!.should be_a(Account)
@@ -73,15 +73,15 @@ module Associations
 
       end
 
-      describe "RELATION JOIN #repository#where.inner_join(&.relations)" do
+      describe "RELATION JOIN #repo#where.inner_join(&.relations)" do
 
         it "should validly join related model" do
 
 
-          User.repository
+          User.repo
             .inner_join(&.accounts)
             .where(Account, {"name", :eq, "account"})
-            .execute[0]
+            .get[0]
             .not_nil!
             .should be_a(User)
 
@@ -89,15 +89,15 @@ module Associations
 
       end
 
-      describe "RELATION EAGER LOADING #repository#eager_load(&.relations)" do
+      describe "RELATION EAGER LOADING #repo#eager_load(&.relations)" do
 
         it "should eagerly load related models" do
 
 
-          user = User.repository
+          user = User.repo
                   .where(User, {"name", :eq, "joe"})
                   .eager_load(&.accounts)
-                  .execute[0].not_nil!
+                  .get[0].not_nil!
 
           user.accounts(load: false)[0].not_nil!.should be_a(Account)
 

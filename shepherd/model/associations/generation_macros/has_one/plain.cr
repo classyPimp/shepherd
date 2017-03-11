@@ -34,7 +34,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
 
     def {{property_name.id}}
 
-      repository = {{slave_class}}.repository.init_where
+      repo = {{slave_class}}.repo
 
       @resolver_proc = Proc(Shepherd::Model::Collection({{owner_class}}), Nil).new do |collection|
 
@@ -49,7 +49,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
         end
 
         unless array_of_local_keys.empty?
-          child_collection = repository.not_nil!.where({{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).execute
+          child_collection = repo.not_nil!.where({{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).get
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}} = child
@@ -58,7 +58,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
 
       end
 
-      repository
+      repo
     end
 
   end
@@ -96,20 +96,20 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
   # user.account(load: false) #=> nil
   # user.account #=> queries and sets to property will return Account instance
   #
-  # user.account(yield_repository: true) do |repo|
-  #   repo.select("id", "name", "user_id").execute[0]?
+  # user.account(yield_repo: true) do |repo|
+  #   repo.select("id", "name", "user_id").get[0]?
   # end
   # user.account(load: false) #=> Account instance
   #
-  # User.repository.join(&.account)
+  # User.repo.join(&.account)
   #  .where(Account, {"banned", :eq, false})
-  #  .execute
+  #  .get
   #
   # eager loading:
-  # users = User.repository
+  # users = User.repo
   #  .where("karama", :gt, 100)
   #  .eager_load(&.account)
-  #  .execute
+  #  .get
   # users[0].account(load: false) #=> Account instance
   #
   macro set(master_class, property_name, config, aggregate_config, database_mapping)
@@ -124,7 +124,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
 
     {{@type}}.set_getter_overload_load_false({{property_name}}, {{slave_class}})
 
-    {{@type}}.set_getter_overload_to_yield_repository({{property_name}}, {{slave_class}}, {{foreign_key}}, {{local_key}})
+    {{@type}}.set_getter_overload_to_yield_repo({{property_name}}, {{slave_class}}, {{foreign_key}}, {{local_key}})
 
     {{@type}}.set_setter({{property_name}}, {{slave_class}})
 
@@ -143,10 +143,10 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
     def {{property_name.id}}
       @{{property_name.id}} ||= (
         if @{{ local_key.id }}
-          {{slave_class}}.repository.where(
+          {{slave_class}}.repo.where(
           {{slave_class}}.table_name, { "{{foreign_key.id}}", :eq, self.{{ local_key.id }} }
           ).limit(1)
-          .execute[0]?
+          .get[0]?
         else
           nil
         end
@@ -167,12 +167,12 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Plain
   end
 
 
-  macro set_getter_overload_to_yield_repository(property_name, slave_class, foreign_key, local_key)
+  macro set_getter_overload_to_yield_repo(property_name, slave_class, foreign_key, local_key)
 
-    def {{property_name.id}}(yield_repository : Bool, &block)
+    def {{property_name.id}}(yield_repo : Bool, &block)
       @{{property_name.id}} ||= (
         yield (
-          {{slave_class}}.repository.where(
+          {{slave_class}}.repo.where(
             {{slave_class}}.table_name, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
           ).limit(1)
         )

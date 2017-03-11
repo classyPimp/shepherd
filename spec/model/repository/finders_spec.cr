@@ -2,20 +2,20 @@ require "../database_preparation/db_helper"
 
 db_helper = DBHelper.instance
 
-describe "#repository.where" do
+describe "#repo.where" do
 
   it "returns collection of model if found any" do
      user = User.new
      user.name = "asdasd"
-     user.repository.create
+     user.repo.create
 
      user = User.new
      user.name = "asdasd"
-     user.repository.create
+     user.repo.create
 
-     users = User.repository
+     users = User.repo
       .where({"name", :eq, "asdasd"})
-      .execute
+      .get
 
      users.should be_a(Shepherd::Model::Collection(User))
      users.size.should eq(2)
@@ -23,9 +23,9 @@ describe "#repository.where" do
   end
 
   it "when recieves :eq as operator builds =" do
-    user = User.repository
+    user = User.repo
       .where({"name", :eq, "asdasd"}) #depends if previous in this test created  with such name
-      .execute[0]?
+      .get[0]?
 
     user.should be_a(User)
 
@@ -35,11 +35,11 @@ describe "#repository.where" do
 
     user = User.new
     user.age = 30
-    user.repository.create
+    user.repo.create
 
-    that_user = User.repository
+    that_user = User.repo
       .where({"age", :gt, user.age.not_nil! - 1})
-      .execute[0].not_nil!
+      .get[0].not_nil!
 
     that_user.id.should eq(user.id)
 
@@ -49,11 +49,11 @@ describe "#repository.where" do
 
     user = User.new
     user.age = 20
-    user.repository.create
+    user.repo.create
 
-    that_user = User.repository
+    that_user = User.repo
       .where({"age", :lt, user.age.not_nil! + 1})
-      .execute[0].not_nil!
+      .get[0].not_nil!
 
     that_user.id.should eq(user.id)
 
@@ -61,10 +61,10 @@ describe "#repository.where" do
 
   describe "where(raw_query : String, *args)" do
     it "builds non conflicting with other statements where statemes" do
-      user = User.repository
+      user = User.repo
         .where({"id", :gt, 0})
         .where("users.age = $2", 20)
-        .execute[0]
+        .get[0]
 
       user.should be_a(User)
 
@@ -74,11 +74,11 @@ describe "#repository.where" do
   describe "inner_join(raw_join_statement):" do
     it  "joins non conflictly" do
 
-      # user = User.repository
+      # user = User.repo
       #   .where({"id", :gt, 0})
       #   .inner_join(&.accounts)
       #   .raw_join("INNER JOIN accounts foos on foos.user_id = users.id")
-      #   .execute
+      #   .get
 
     end
   end
@@ -87,28 +87,29 @@ describe "#repository.where" do
   describe "#order_by(col_name, order, prefix : table_name)" do
 
     it "orders asc" do
-      user = User.repository
-        .init_where
-        .order_by("id", :desc)
+      user = User.repo
+        .order(User, "id", direction: :desc)
         .limit(1)
-        .execute[0]
+        .get[0]
 
       user.should be_a(User)
+      user.email = "UPDATEDEMAIL!"
+      user.repo.update("name", "email")
     end
 
   end
 
 end
 
-describe "#repository.find" do
+describe "#repo.find" do
 
-  it "returns the model if found" do
-    user = User.new
-      user.name = "awdgvasdv"
-      user.repository.create
-
-    that_user = User.repository.find(user.id.not_nil!)[0]?
-    that_user.should be_a(User)
-  end
+  # it "returns the model if found" do
+  #   user = User.new
+  #     user.name = "awdgvasdv"
+  #     user.repo.create
+  #
+  #   that_user = User.repo.find(user.id.not_nil!)[0]?
+  #   that_user.should be_a(User)
+  # end
 
 end

@@ -4,18 +4,12 @@ module Shepherd::Model::Repository::ModulesForModel::ConfigurationMacros
     {% connection = settings[:connection] %}
     {% symbol_adapter = settings[:adapter] %}
 
-    def repository : Shepherd::Model::Repository::Base
-      Shepherd::Model::Repository::Base(
-        Shepherd::Model::QueryBuilder::Adapters::{{symbol_adapter.id}},
-        {{connection}},
-        self).new(self)
+    def repo : Shepherd::Model::QueryBuilder::Adapters::{{symbol_adapter.id}}::Repository({{connection}}, self)
+      Shepherd::Model::QueryBuilder::Adapters::{{symbol_adapter.id}}::Repository({{connection}}, self).new(self)
     end
 
-    def self.repository : Shepherd::Model::Repository::Base
-      Shepherd::Model::Repository::Base(
-        Shepherd::Model::QueryBuilder::Adapters::{{symbol_adapter.id}},
-        {{connection}},
-        self).new
+    def self.repo : Shepherd::Model::QueryBuilder::Adapters::{{symbol_adapter.id}}::Repository({{connection}}, self)
+      Shepherd::Model::QueryBuilder::Adapters::{{symbol_adapter.id}}::Repository({{connection}}, self).new
     end
 
   end

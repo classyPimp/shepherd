@@ -38,7 +38,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Through
 
     def {{property_name.id}}
 
-      repository = {{slave_class}}.repository.init_where
+      repo = {{slave_class}}.repo
 
       @resolver_proc = Proc(Shepherd::Model::Collection({{owner_class}}), Nil).new do |collection|
         #TODO: ideally should read types of fields out of results of db_mapping macro
@@ -53,11 +53,11 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Through
         end
 
         unless array_of_local_keys.empty?
-          child_collection = repository.not_nil!.inner_join(&.{{this_joined_through.id}})
+          child_collection = repo.not_nil!.inner_join(&.{{this_joined_through.id}})
             .where(
               {{through_relation_class_name}},
               { {{foreign_key_for_through}}, :in, array_of_local_keys }
-            ).execute
+            ).get
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{local_key_for_through.id}}].{{property_name.id}} = child
@@ -67,7 +67,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Through
       end
 
 
-      repository
+      repo
     end
 
   end
@@ -96,7 +96,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Through
 
     {{@type}}.set_getter_overload_load_false({{property_name}}, {{slave_class}})
 
-    {{@type}}.set_getter_overload_to_yield_repository({{property_name}}, {{slave_class}}, {{through_class}}, {{this_joined_through}}, {{that_joined_through}}, {{local_key_for_through}}, {{foreign_key_for_through}})
+    {{@type}}.set_getter_overload_to_yield_repo({{property_name}}, {{slave_class}}, {{through_class}}, {{this_joined_through}}, {{that_joined_through}}, {{local_key_for_through}}, {{foreign_key_for_through}})
 
     {{@type}}.set_setter({{property_name}}, {{slave_class}})
 
@@ -116,11 +116,11 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Through
     def {{property_name.id}}
       @{{property_name.id}} ||= (
         if @{{ local_key_for_through.id }}
-          {{slave_class}}.repository
+          {{slave_class}}.repo
             .inner_join(&.{{this_joined_through.id}})
             .where({{through_class}}, { {{local_key_for_through}}, :eq, self.{{local_key_for_through.id}} })
             .limit(1)
-            .execute[0]?
+            .get[0]?
         else
           nil
         end
@@ -141,12 +141,12 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Through
   end
 
 
-  macro set_getter_overload_to_yield_repository(property_name, slave_class, through_class, this_joined_through, that_joined_through, local_key_for_through, foreign_key_for_through)
+  macro set_getter_overload_to_yield_repo(property_name, slave_class, through_class, this_joined_through, that_joined_through, local_key_for_through, foreign_key_for_through)
 
-    def {{property_name.id}}(yield_repository : Bool, &block)
+    def {{property_name.id}}(yield_repo : Bool, &block)
       @{{property_name.id}} ||= (
         yield (
-          {{slave_class}}.repository
+          {{slave_class}}.repo
             .inner_join(&.{{this_joined_through.id}})
             .where({{through_class}}, { {{local_key_for_through}}, :eq, self.{{local_key_for_through.id}} })
             .limit(1)

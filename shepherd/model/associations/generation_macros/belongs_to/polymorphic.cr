@@ -46,7 +46,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
         {% iterations_counter_flag = 0 %}
         {% for type in supported_types_ary%}
           {% iterations_counter_flag = iterations_counter_flag + 1 %}
-          {{type.stringify.split("::")[-1]}}: {{type.id}}.repository.init_where {{",".id unless iterations_counter_flag == supported_types_ary_size_flag }}
+          {{type.stringify.split("::")[-1]}}: {{type.id}}.repo {{",".id unless iterations_counter_flag == supported_types_ary_size_flag }}
         {% end %}
       }
 
@@ -82,14 +82,14 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
             case name
             {% for type in supported_types_ary%}
             when {{type.stringify.split("::")[-1].id.symbolize}}
-              child_collection = repositories[name].not_nil!.where(nil, { {{foreign_key}}, :in, array_of_local_keys }).execute
+              child_collection = repositories[name].not_nil!.where( { {{foreign_key}}, :in, array_of_local_keys }).get
               child_collection.as(Shepherd::Model::Collection({{type.id}})).each do |child|
                 mapper_by_local_key[name][child.{{foreign_key.id}}.not_nil!].{{property_name.id}} = child
               end
             {%end%}
             end
             #can't convince compiler that this will work:
-            # child_collection = repositories[name].not_nil!.where(nil, { {{foreign_key}}, :in, array_of_local_keys }).execute
+            # child_collection = repositories[name].not_nil!.where( { {{foreign_key}}, :in, array_of_local_keys }).get
             #
             # child_collection.not_nil!.each do |child|
             #   mapper_by_local_key[name][child.{{foreign_key.id}}.not_nil!].{{property_name.id}} = child
@@ -126,7 +126,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
     {{@type}}.set_property({{property_name}}, {{slave_type_union}})
     {{@type}}.set_getter({{property_name}}, {{local_key}}, {{polymorphic_type_field}}, {{supported_types_ary}}, {{foreign_key}})
     {{@type}}.set_getter_overload_load_false({{property_name}}, {{slave_type_union}})
-    {{@type}}.set_getter_overload_to_yield_repository({{property_name}}, {{polymorphic_type_field}}, {{supported_types_ary}}, {{foreign_key}}, {{local_key}})
+    {{@type}}.set_getter_overload_to_yield_repo({{property_name}}, {{polymorphic_type_field}}, {{supported_types_ary}}, {{foreign_key}}, {{local_key}})
     {{@type}}.set_setter({{property_name}}, {{slave_type_union}})
   end
 
@@ -146,9 +146,9 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
           case @{{polymorphic_type_field.id}}
             {%for type in supported_types_ary%}
               when {{ type.stringify.split("::")[-1] }}
-                {{type.id}}.repository.where(
+                {{type.id}}.repo.where(
                   {{type.id}}, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
-                ).limit(1).execute[0]?
+                ).limit(1).get[0]?
             {%end%}
           end
         else
@@ -171,15 +171,15 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
   end
 
 
-  macro set_getter_overload_to_yield_repository(property_name, polymorphic_type_field, supported_types_ary, foreign_key, local_key)
+  macro set_getter_overload_to_yield_repo(property_name, polymorphic_type_field, supported_types_ary, foreign_key, local_key)
 
-    def {{property_name.id}}(yield_repository : Bool, &block)
+    def {{property_name.id}}(yield_repo : Bool, &block)
       @{{property_name.id}} ||= (
         yield (
           case @{{polymorphic_type_field.id}}
             {%for type in supported_types_ary%}
               when {{ type.stringify.split("::")[-1] }}
-                {{type.id}}.repository.where(
+                {{type.id}}.repo.where(
                   {{type.id}}, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
                 ).limit(1)
             {%end%}

@@ -23,9 +23,16 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::StatementBuilders::Wher
   @pg_placeholder_counter : Int32
   @pg_placeholder_counter = 0
 
-  def get_current_placeholder : Int32
+  def initialize(@pg_placeholder_counter : Int32 = 0)
+  end
+
+  def get_current_placeholder_with_incr : Int32
     @pg_placeholder_counter += 1
     return @pg_placeholder_counter
+  end
+
+  def get_pg_placeholder_counter : Int32
+    @pg_placeholder_counter
   end
 
   def add_statement(table_name : String?, *args : Tuple(String, Symbol, DB::Any)) : Nil
@@ -89,6 +96,16 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::StatementBuilders::Wher
     mark_self_as_called
   end
 
+
+  def raw_where(raw_statement : String, *args : DB::Any) : Nil
+    insert_where_and_or_nil
+    @statements_io << raw_statement
+    args.each do |arg|
+      @statements_args << arg
+    end
+  end
+
+
   def or_where(table_name : String, *args : Tuple(String, Symbol, DB::Any)) : Nil
     @or_called = true
     @statements_io << " OR "
@@ -102,6 +119,8 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::StatementBuilders::Wher
     add_statement(nil, *args)
     @or_called = false
   end
+
+
 
   def build_statement_depending_on_operator_kind_and_push_arg(table_name : String?, triplet : Tuple(String, Symbol, DB::Any)) : Nil
     field_name = triplet[0]
@@ -125,20 +144,20 @@ class Shepherd::Model::QueryBuilder::Adapters::Postgres::StatementBuilders::Wher
   def build_equals(table_name : String?, field_name : String) : Nil
     insert_space_char_to_statements_io
     @statements_io << table_name  << field_name
-    @statements_io << " = $#{get_current_placeholder}"
+    @statements_io << " = $#{get_current_placeholder_with_incr}"
   end
 
 
   def build_greater_than(table_name : String?, field_name : String) : Nil
     insert_space_char_to_statements_io
     @statements_io << table_name << field_name
-    @statements_io << " > $#{get_current_placeholder}"
+    @statements_io << " > $#{get_current_placeholder_with_incr}"
   end
 
   def build_less_than(table_name : String?, field_name : String) : Nil
     insert_space_char_to_statements_io
     @statements_io << table_name << field_name
-    @statements_io << " < $#{get_current_placeholder}"
+    @statements_io << " < $#{get_current_placeholder_with_incr}"
   end
 
   def insert_space_char_to_statements_io : Nil

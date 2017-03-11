@@ -10,7 +10,7 @@ module Associations
     describe "belongs_to (plain)" do
 
       describe "#relation" do
-        
+
         it "should query dependent and assign it to property" do
 
           db_helper.fetch_account.user.not_nil!.should be_a(
@@ -29,20 +29,20 @@ module Associations
 
       end
 
-      describe "#realations(yield_repository: true, &block)" do
+      describe "#realations(yield_repo: true, &block)" do
 
-        it "returns repository#where : QueryBuilder of related model" do
+        it "returns repo#where : QueryBuilder of related model" do
 
-          db_helper.fetch_account.user(yield_repository: true) do |repo|
-            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(Shepherd::Database::DefaultConnection, User))
+          db_helper.fetch_account.user(yield_repo: true) do |repo|
+            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Repository(Shepherd::Database::DefaultConnection, User))
           end
         end
 
-        it "when #execute called on repository returned value should be assigned to #relations" do
+        it "when #get called on repo returned value should be assigned to #relations" do
 
           account = db_helper.fetch_account
-          account.user(yield_repository: true) do |repo|
-            repo.execute[0]?
+          account.user(yield_repo: true) do |repo|
+            repo.get[0]?
           end
           account.user(load: false).not_nil!.should be_a(User)
         end
@@ -50,15 +50,15 @@ module Associations
       end
 
 
-      describe "RELATION JOIN #repository#where.inner_join(&.relations)" do
+      describe "RELATION JOIN #repo#where.inner_join(&.relations)" do
 
         it "should validly join related model" do
 
 
-          Account.repository
+          Account.repo
             .inner_join(&.user)
             .where(User, {"name", :eq, "joe"})
-            .execute[0]
+            .get[0]
             .not_nil!
             .should be_a(Account)
 
@@ -66,15 +66,15 @@ module Associations
 
       end
 
-      describe "RELATION EAGER LOADING #repository#eager_load(&.relations)" do
+      describe "RELATION EAGER LOADING #repo#eager_load(&.relations)" do
 
         it "should eagerly load related models" do
 
 
-          account = Account.repository
+          account = Account.repo
                   .where(Account, {"name", :eq, "account"})
                   .eager_load(&.user)
-                  .execute[0].not_nil!
+                  .get[0].not_nil!
 
           account.user(load: false).not_nil!.should be_a(User)
 

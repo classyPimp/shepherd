@@ -50,20 +50,20 @@ module Associations
 
       end
 
-      describe "#realations(yield_repository: true, &block)" do
+      describe "#realations(yield_repo: true, &block)" do
 
-        it "returns repository#where : QueryBuilder of related model" do
+        it "returns repo#where : QueryBuilder of related model" do
 
-          db_helper.fetch_post_text.post_nodes(yield_repository: true) do |repo|
-            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Where(Shepherd::Database::DefaultConnection, PostNode))
+          db_helper.fetch_post_text.post_nodes(yield_repo: true) do |repo|
+            repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Repository(Shepherd::Database::DefaultConnection, PostNode))
           end
         end
 
-        it "when #execute called on repository returned value should be assigned to #relations" do
+        it "when #get called on repo returned value should be assigned to #relations" do
 
           post_text = db_helper.fetch_post_text
-          post_text.post_nodes(yield_repository: true) do |repo|
-            repo.execute
+          post_text.post_nodes(yield_repo: true) do |repo|
+            repo.get
           end
 
           post_text.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
@@ -71,15 +71,15 @@ module Associations
 
       end
 
-      describe "RELATION JOIN #repository#where.inner_join(&.relations)" do
+      describe "RELATION JOIN #repo#where.inner_join(&.relations)" do
 
         it "should validly join related model" do
 
 
-          PostText.repository
+          PostText.repo
             .inner_join(&.post_nodes)
             .where(PostNode, {"node_type", :eq, "PostText"})
-            .execute[0]
+            .get[0]
             .not_nil!
             .should be_a(PostText)
 
@@ -87,15 +87,15 @@ module Associations
 
       end
 
-      describe "RELATION EAGER LOADING #repository#eager_load(&.relations)" do
+      describe "RELATION EAGER LOADING #repo#eager_load(&.relations)" do
 
         it "should eagerly load related models" do
 
 
-          post_text = PostText.repository
+          post_text = PostText.repo
             .where(PostText, {"content", :eq, "post text"})
             .eager_load(&.post_nodes)
-            .execute[0].not_nil!
+            .get[0].not_nil!
 
           post_text.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
 

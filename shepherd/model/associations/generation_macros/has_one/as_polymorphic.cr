@@ -39,7 +39,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::AsPolymorphic
 
     def {{property_name.id}}
 
-      repository = {{slave_class}}.repository.init_where
+      repo = {{slave_class}}.repo
 
       @resolver_proc = Proc(Shepherd::Model::Collection({{owner_class}}), Nil).new do |collection|
 
@@ -54,11 +54,11 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::AsPolymorphic
         end
 
         unless array_of_local_keys.empty?
-          child_collection = repository.not_nil!.where(
+          child_collection = repo.not_nil!.where(
             {{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }
           ).where(
             {{slave_class}}.table_name, { {{foreign_polymorphic_type_field}}, :eq, {{ owner_class_name_for_type_field }} }
-          ).execute
+          ).get
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}} = child
@@ -67,7 +67,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::AsPolymorphic
 
       end
 
-      repository
+      repo
     end
 
   end
@@ -97,7 +97,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::AsPolymorphic
 
     {{@type}}.set_getter_overload_load_false({{property_name}}, {{slave_class}})
 
-    {{@type}}.set_getter_overload_to_yield_repository({{property_name}}, {{slave_class}}, {{foreign_key}}, {{local_key}}, {{owner_class_name_for_type_field}}, {{foreign_polymorphic_type_field}})
+    {{@type}}.set_getter_overload_to_yield_repo({{property_name}}, {{slave_class}}, {{foreign_key}}, {{local_key}}, {{owner_class_name_for_type_field}}, {{foreign_polymorphic_type_field}})
 
     {{@type}}.set_setter({{property_name}}, {{slave_class}})
 
@@ -116,12 +116,12 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::AsPolymorphic
     def {{property_name.id}}
       @{{property_name.id}} ||= (
         if @{{ local_key.id }}
-          {{slave_class}}.repository.where(
+          {{slave_class}}.repo.where(
             {{slave_class}}.table_name,
               { "{{foreign_key.id}}", :eq, self.{{ local_key.id }} },
               { {{foreign_polymorphic_type_field}}, :eq, {{ owner_class_name_for_type_field }} }
           ).limit(1)
-          .execute[0]?
+          .get[0]?
         else
           nil
         end
@@ -142,12 +142,12 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::AsPolymorphic
   end
 
 
-  macro set_getter_overload_to_yield_repository(property_name, slave_class, foreign_key, local_key, owner_class_name_for_type_field, foreign_polymorphic_type_field)
+  macro set_getter_overload_to_yield_repo(property_name, slave_class, foreign_key, local_key, owner_class_name_for_type_field, foreign_polymorphic_type_field)
 
-    def {{property_name.id}}(yield_repository : Bool, &block)
+    def {{property_name.id}}(yield_repo : Bool, &block)
       @{{property_name.id}} ||= (
         yield (
-          {{slave_class}}.repository.where(
+          {{slave_class}}.repo.where(
             {{slave_class}}.table_name,
             { {{foreign_key}}, :eq, self.{{ local_key.id }} },
             { {{foreign_polymorphic_type_field}}, :eq, {{ owner_class_name_for_type_field }} }

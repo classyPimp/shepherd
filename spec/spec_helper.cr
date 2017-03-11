@@ -13,6 +13,5 @@ require "./model/associations/has_one/as_polymorphic_spec"
 require "./model/associations/has_one/plain_spec"
 require "./model/associations/has_one/through_spec"
 
-require "./model/n_repo_spec"
 
 require "./model/repository/**"
