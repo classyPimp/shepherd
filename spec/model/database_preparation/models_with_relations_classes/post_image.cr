@@ -13,7 +13,7 @@ class PostImage < Model::TestDomainBase
   #
   associations_config({
     post_nodes: {
-      type: :has_many, class_name: Models::PostNode,
+      type: :has_many, class_name: PostNode,
       local_key: "id", foreign_key: "node_id"#, as: "PostImage",
       #foreign_polymorphic_field: "node_type"
     }#,

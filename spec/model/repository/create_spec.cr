@@ -11,7 +11,7 @@ describe "#repo.create" do
 
     user = User.repo.where({"name", :eq, "joe schmoe"})
       .limit(1)
-      .get[0].not_nil!
+      .get.not_nil!
 
     user.name.should eq("joe schmoe")
     user.email.should eq("joe@schmoe.com")
@@ -36,7 +36,7 @@ describe "#repo.create" do
 
     user = User.repo.where({"name", :eq, "joe schmoe the2nd"})
       .limit(1)
-      .get[0].not_nil!
+      .get.not_nil!
 
     user.name.should eq("joe schmoe the2nd")
     user.email.should eq(nil)

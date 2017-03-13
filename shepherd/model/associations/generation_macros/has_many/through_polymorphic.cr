@@ -60,7 +60,7 @@ class Shepherd::Model::GenerationMacros::HasMany::ThroughPolymorphic
             {% if this_joins_as %}
               .where({{through_class}}, { {{polymorphic_type_field}}, :eq, {{this_joins_as}} })
             {% end %}
-            .get
+            .list
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{foreign_key_for_through.id}}].{{property_name.id}}(load: false) << child
@@ -134,7 +134,7 @@ class Shepherd::Model::GenerationMacros::HasMany::ThroughPolymorphic
             {% if this_joins_as %}
               .where({{through_class}}, { {{polymorphic_type_field}}, :eq, {{this_joins_as}} })
             {% end %}
-            .get
+            .list
         else
           Shepherd::Model::Collection({{slave_class}}).new
         end

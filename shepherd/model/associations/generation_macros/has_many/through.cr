@@ -55,7 +55,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasMany::Through
         unless array_of_local_keys.empty?
           child_collection = repo.not_nil!.inner_join(&.{{this_joined_through.id}})
             .where({{through_relation_class_name}}, { {{foreign_key_for_through}}, :in, array_of_local_keys })
-            .get
+            .list
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{local_key_for_through.id}}].{{property_name.id}}(load: false) << child
@@ -117,7 +117,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasMany::Through
           {{slave_class}}.repo
             .inner_join(&.{{this_joined_through.id}})
             .where({{through_class}}, { {{foreign_key_for_through}}, :eq, self.{{local_key_for_through.id}} })
-            .get
+            .list
         else
           Shepherd::Model::Collection({{slave_class}}).new
         end

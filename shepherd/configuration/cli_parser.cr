@@ -27,6 +27,7 @@ class Shepherd::Configuration::CliParser
   #parses and stores the passed CLI options
   def parse_cli_options : Nil
 
+
     OptionParser.parse! do |cli_options|
 
       cli_options.on("-b HOST", "Host to bind (defaults to 0.0.0.0)") do |host|
@@ -37,11 +38,25 @@ class Shepherd::Configuration::CliParser
         @options_passed_from_cli[:port] = port.to_i
       end
 
+      # cli_options.on("-env ENV", "Env (defaults to development)") do |env|
+      #   @options_passed_from_cli[:env] = env
+      # end
+
     end
 
   end
 
+  def read_env : String
+    env_to_return = "development"
+    OptionParser.parse! do |cli_options|
 
+      cli_options.on("-env ENV", "Env (defaults to development)") do |env|
+         env_to_return = env
+      end
+
+    end
+    return env_to_return
+  end
 
 
 

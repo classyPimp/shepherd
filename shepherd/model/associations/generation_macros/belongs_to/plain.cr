@@ -49,7 +49,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Plain
         end
 
         unless array_of_local_keys.empty?
-          child_collection = repo.not_nil!.where({{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).get
+          child_collection = repo.not_nil!.where({{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }).list
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}} = child
@@ -106,7 +106,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Plain
           {{slave_class}}.repo.where(
           {{slave_class}}.table_name, { "{{foreign_key.id}}", :eq, self.{{ local_key.id }} }
           ).limit(1)
-          .get[0]?
+          .get
         else
           nil
         end

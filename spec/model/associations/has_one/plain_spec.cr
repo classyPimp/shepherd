@@ -42,7 +42,7 @@ module Associations
 
           user = db_helper.fetch_user
           user.account(yield_repo: true) do |repo|
-            repo.get[0].not_nil!
+            repo.get.not_nil!
           end
           user.account(load: false).not_nil!.should be_a(Account)
         end
@@ -58,7 +58,7 @@ module Associations
           user = User.repo
             .inner_join(&.account)
             .where(Account, {"name", :eq, "account"})
-            .get[0]
+            .get
             .not_nil!
 
           user.account.not_nil!.name.should eq("account")
@@ -75,7 +75,7 @@ module Associations
           user = User.repo
                   .where(User, {"name", :eq, "joe"})
                   .eager_load(&.account)
-                  .get[0].not_nil!
+                  .get.not_nil!
 
           user.account(load: false).not_nil!.should be_a(Account)
 

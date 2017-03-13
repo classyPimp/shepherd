@@ -48,9 +48,9 @@ class Shepherd::Configuration::Base
         @@{{name.id}}
       end
 
-        def self.{{name.id}}=(value : {{option[:type]}})
-          @@{{name.id}} = value
-        end
+      def self.{{name.id}}=(value : {{option[:type]}})
+        @@{{name.id}} = value
+      end
 
     end
 

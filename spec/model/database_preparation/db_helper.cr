@@ -20,7 +20,7 @@ class DBHelper
 
   def initialize
     @connection = Shepherd::Database::DefaultConnection.get
-    clear_old
+    clear_previously_created
     @user = create_user
     @account = create_account
     @second_account = create_account(name: "account1")
@@ -32,7 +32,7 @@ class DBHelper
     self
   end
 
-  def clear_old
+  def clear_previously_created
     @connection.exec "delete from users"
     @connection.exec "delete from posts"
     @connection.exec "delete from accounts"
@@ -106,47 +106,47 @@ class DBHelper
 
   def fetch_post : Post
     Post.repo.where(Post, {"id", :in, [@post.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
   def fetch_user : User
     User.repo.where(User, {"id", :in, [@user.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
   def fetch_account : Account
     Account.repo.where(Account, {"id", :in, [@account.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
   def fetch_second_account : Account
     Account.repo.where(Account, {"id", :in, [@second_account.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
   def fetch_post : Post
     Post.repo.where(Post, {"id", :in, [@post.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
   def fetch_post_text : PostText
     PostText.repo.where(PostText, {"id", :in, [@post_text.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
   def fetch_post_image : PostImage
     PostImage.repo.where(PostImage, {"id", :in, [@post_image.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
   def fetch_post_node_btp_post_text : PostNode
     PostNode.repo.where(PostNode, {"id", :in, [@post_node_btp_post_text.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
   def fetch_post_node_btp_post_image : PostNode
     PostNode.repo.where(PostNode, {"id", :in, [@post_node_btp_post_image.not_nil!.id.not_nil!]})
-    .get[0].not_nil!
+    .get.not_nil!
   end
 
 

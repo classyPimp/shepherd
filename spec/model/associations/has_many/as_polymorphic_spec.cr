@@ -59,11 +59,11 @@ module Associations
           end
         end
 
-        it "when #get called on repo returned value should be assigned to #relations" do
+        it "when #list called on repo returned value should be assigned to #relations" do
 
           post_text = db_helper.fetch_post_text
           post_text.post_nodes(yield_repo: true) do |repo|
-            repo.get
+            repo.list
           end
 
           post_text.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
@@ -79,7 +79,7 @@ module Associations
           PostText.repo
             .inner_join(&.post_nodes)
             .where(PostNode, {"node_type", :eq, "PostText"})
-            .get[0]
+            .get
             .not_nil!
             .should be_a(PostText)
 
@@ -95,7 +95,7 @@ module Associations
           post_text = PostText.repo
             .where(PostText, {"content", :eq, "post text"})
             .eager_load(&.post_nodes)
-            .get[0].not_nil!
+            .get.not_nil!
 
           post_text.post_nodes(load: false)[0].not_nil!.should be_a(PostNode)
 

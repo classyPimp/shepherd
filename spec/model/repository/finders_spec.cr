@@ -2,9 +2,9 @@ require "../database_preparation/db_helper"
 
 db_helper = DBHelper.instance
 
-describe "#repo.where" do
+describe "#repo.where...list || get" do
 
-  it "returns collection of model if found any" do
+  it ".list returns collection of model if found any" do
      user = User.new
      user.name = "asdasd"
      user.repo.create
@@ -15,7 +15,7 @@ describe "#repo.where" do
 
      users = User.repo
       .where({"name", :eq, "asdasd"})
-      .get
+      .list
 
      users.should be_a(Shepherd::Model::Collection(User))
      users.size.should eq(2)
@@ -25,7 +25,7 @@ describe "#repo.where" do
   it "when recieves :eq as operator builds =" do
     user = User.repo
       .where({"name", :eq, "asdasd"}) #depends if previous in this test created  with such name
-      .get[0]?
+      .get
 
     user.should be_a(User)
 
@@ -39,7 +39,7 @@ describe "#repo.where" do
 
     that_user = User.repo
       .where({"age", :gt, user.age.not_nil! - 1})
-      .get[0].not_nil!
+      .get.not_nil!
 
     that_user.id.should eq(user.id)
 
@@ -53,7 +53,7 @@ describe "#repo.where" do
 
     that_user = User.repo
       .where({"age", :lt, user.age.not_nil! + 1})
-      .get[0].not_nil!
+      .get.not_nil!
 
     that_user.id.should eq(user.id)
 
@@ -64,7 +64,7 @@ describe "#repo.where" do
       user = User.repo
         .where({"id", :gt, 0})
         .where("users.age = $2", 20)
-        .get[0]
+        .list[0]
 
       user.should be_a(User)
 
@@ -90,26 +90,45 @@ describe "#repo.where" do
       user = User.repo
         .order(User, "id", direction: :desc)
         .limit(1)
-        .get[0]
+        .get.not_nil!
 
       user.should be_a(User)
-      user.email = "UPDATEDEMAIL!"
-      user.repo.update("name", "email")
     end
 
   end
 
 end
 
-describe "#repo.find" do
+describe "#repo.get" do
 
-  # it "returns the model if found" do
-  #   user = User.new
-  #     user.name = "awdgvasdv"
-  #     user.repo.create
-  #
-  #   that_user = User.repo.find(user.id.not_nil!)[0]?
-  #   that_user.should be_a(User)
-  # end
+  it "returns single Model | Nil" do
+    user = User.new
+      user.name = "awdgvasdv"
+      user.repo.create
+
+    that_user = User.repo.where({"id", :eq, user.id}).get
+    that_user.should be_a(User)
+  end
+
+end
+
+describe "#repo.list" do
+
+  it "returns Model::Collection of T" do
+
+    user = User.new
+      user.name = "forlist"
+      user.repo.create
+
+    user2 = User.new
+      user2.name = "forlist"
+      user2.repo.create
+
+    res = User.repo.where({"name", :eq, "forlist"}).list
+    res.should be_a(Shepherd::Model::Collection(User))
+    res.size.should eq(2)
+
+
+  end
 
 end

@@ -35,7 +35,7 @@ module Associations
 
           db_helper.fetch_post_text.post_node(yield_repo: true) do |repo|
             repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Repository(Shepherd::Database::DefaultConnection, PostNode))
-            repo.get[0]?
+            repo.get
           end
         end
 
@@ -43,7 +43,7 @@ module Associations
 
           post_text = db_helper.fetch_post_text
           post_text.post_node(yield_repo: true) do |repo|
-            repo.get[0].not_nil!
+            repo.get.not_nil!
           end
           post_text.post_node(load: false).not_nil!.should be_a(PostNode)
         end
@@ -59,7 +59,7 @@ module Associations
           post_text = PostText.repo
             .inner_join(&.post_node)
             .where(PostNode, {"node_type", :eq, "PostText"})
-            .get[0]
+            .get
             .not_nil!
 
           post_text.post_node.not_nil!.node_type.should eq("PostText")
@@ -76,7 +76,7 @@ module Associations
           post_text = PostText.repo
             .where(PostText, {"content", :eq, "post text"})
             .eager_load(&.post_node)
-            .get[0]
+            .get
             .not_nil!
 
           post_text.post_node(load: false).not_nil!.should be_a(PostNode)

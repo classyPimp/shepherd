@@ -27,7 +27,7 @@ module Shepherd::Controller::Modules::ParamAccessingMethods
   end
   #accesses the class responsible for fetching different "params" types and
   #dispatching to appropriate parsers if needed
-  def unparsed_params(args_name)
+  def unparsed_params : Shepherd::Server::Request::Params
     @unparsed_params ||= Shepherd::Server::Request::Params.new(@context.request)
   end
 

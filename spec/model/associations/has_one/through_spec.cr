@@ -22,7 +22,7 @@ module Associations
 
       describe "#relation(load: false)" do
 
-        it "should not load related model" do
+        it "should not load related model and return value at corresponding property" do
 
           db_helper.fetch_post.account(load: false).should be_nil
         end
@@ -31,7 +31,7 @@ module Associations
 
       describe "#realation(yield_repo: true, &block)" do
 
-        it "returns repo#where : QueryBuilder of related model" do
+        it "returns #repo : Repository of related model" do
 
           db_helper.fetch_post.account(yield_repo: true) do |repo|
             repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Repository(Shepherd::Database::DefaultConnection, Account))
@@ -42,7 +42,7 @@ module Associations
           post = db_helper.fetch_post
           post.account(yield_repo: true) do |repo|
             res = repo.get
-            res[0]?
+            res
           end
           post.account(load: false).not_nil!.should be_a(Account)
         end
@@ -53,11 +53,10 @@ module Associations
 
         it "should validly join related model" do
 
-
           post = Post.repo
             .inner_join(&.account)
             .where(Account, {"name", :eq, "account"})
-            .get[0]
+            .get
             .not_nil!
 
           post.account.not_nil!.name.should eq("account")
@@ -70,11 +69,10 @@ module Associations
 
         it "should eagerly load related models" do
 
-
           post = Post.repo
                   .where(Post, {"title", :eq, "post title"})
                   .eager_load(&.account)
-                  .get[0].not_nil!
+                  .get.not_nil!
 
           post.account(load: false).not_nil!.should be_a(Account)
 

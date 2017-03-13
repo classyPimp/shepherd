@@ -35,7 +35,7 @@ module Associations
 
       describe "#realation(yield_repo: true, &block)" do
 
-        it "returns repo#where : QueryBuilder of related model for corresponding type" do
+        it "returns #repo : Repository of related model for corresponding type" do
 
           db_helper.fetch_post_node_btp_post_image.node(yield_repo: true) do |repo|
             repo.should be_a(Shepherd::Model::QueryBuilder::Adapters::Postgres::Repository(Shepherd::Database::DefaultConnection, PostImage))
@@ -51,14 +51,14 @@ module Associations
 
           post_node_btp_post_image = db_helper.fetch_post_node_btp_post_image
           post_node_btp_post_image.node(yield_repo: true) do |repo|
-            repo.not_nil!.get[0]?
+            repo.not_nil!.get
           end
 
           post_node_btp_post_image.node(load: false).not_nil!.should be_a(PostImage)
 
           post_node_btp_post_text = db_helper.fetch_post_node_btp_post_text
           post_node_btp_post_text.node(yield_repo: true) do |repo|
-            repo.not_nil!.get[0]?
+            repo.not_nil!.get
           end
 
           post_node_btp_post_text.node(load: false).not_nil!.should be_a(PostText)
@@ -75,14 +75,14 @@ module Associations
           PostNode.repo
             .inner_join(&.node(PostImage))
             .where(PostImage, {"content", :eq, "post image"})
-            .get[0]
+            .get
             .not_nil!
             .should be_a(PostNode)
 
           PostNode.repo
             .inner_join(&.node(PostText))
             .where(PostText, {"content", :eq, "post text"})
-            .get[0]
+            .get
             .not_nil!
             .should be_a(PostNode)
 
@@ -98,14 +98,14 @@ module Associations
           post_node = PostNode.repo
                   .where(PostNode, {"node_type", :eq, "PostImage"})
                   .eager_load(&.node)
-                  .get[0].not_nil!
+                  .get.not_nil!
 
           post_node.node(load: false).not_nil!.should be_a(PostImage)
 
           post_node = PostNode.repo
                   .where(PostNode, {"node_type", :eq, "PostText"})
                   .eager_load(&.node)
-                  .get[0].not_nil!
+                  .get.not_nil!
 
           post_node.node(load: false).not_nil!.should be_a(PostText)
 

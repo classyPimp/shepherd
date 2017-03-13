@@ -1,5 +1,4 @@
 require "http/server"
-
 #singleton class, responsible for starting an application.
 class Shepherd::Initializers::Main
 
@@ -23,7 +22,7 @@ class Shepherd::Initializers::Main
     draw_routes
     initialize_server_with_handlers
     connect_database
-    start_server unless TEST #TODO: SHOULD READ FROM ENV AND RUN IN THREAD
+    start_server #unless TEST #TODO: SHOULD READ FROM ENV AND RUN IN THREAD IF IN TEST ENV
   end
 
 
@@ -36,8 +35,10 @@ class Shepherd::Initializers::Main
 
   end
 
+
   def run_env_config : Nil
     Shepherd::Configuration::General.env.not_nil!.set_config
+    puts "env: #{Shepherd::Configuration::General.env.class.name}"
   end
 
 
@@ -68,8 +69,13 @@ class Shepherd::Initializers::Main
     puts "port: #{Shepherd::Configuration::Server.port}"
     puts "host: #{Shepherd::Configuration::Server.host}"
 
-    @server.as(HTTP::Server).listen
-
+    if Shepherd::Configuration::General.env.is_a?(::Config::Env::Test)
+      spawn do
+        @server.as(HTTP::Server).listen
+      end
+    else
+      @server.as(HTTP::Server).listen
+    end
   end
 
 

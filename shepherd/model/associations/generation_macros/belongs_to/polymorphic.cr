@@ -82,7 +82,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
             case name
             {% for type in supported_types_ary%}
             when {{type.stringify.split("::")[-1].id.symbolize}}
-              child_collection = repositories[name].not_nil!.where( { {{foreign_key}}, :in, array_of_local_keys }).get
+              child_collection = repositories[name].not_nil!.where( { {{foreign_key}}, :in, array_of_local_keys }).list
               child_collection.as(Shepherd::Model::Collection({{type.id}})).each do |child|
                 mapper_by_local_key[name][child.{{foreign_key.id}}.not_nil!].{{property_name.id}} = child
               end
@@ -148,7 +148,7 @@ class Shepherd::Model::Associations::GenerationMacros::BelongsTo::Polymorphic
               when {{ type.stringify.split("::")[-1] }}
                 {{type.id}}.repo.where(
                   {{type.id}}, { {{foreign_key}}, :eq, self.{{ local_key.id }} }
-                ).limit(1).get[0]?
+                ).limit(1).get
             {%end%}
           end
         else

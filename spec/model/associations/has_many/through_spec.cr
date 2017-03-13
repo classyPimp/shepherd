@@ -64,7 +64,7 @@ module Associations
 
           post = db_helper.fetch_post
           post.accounts(yield_repo: true) do |repo|
-            repo.get
+            repo.list
           end
           post.accounts(load: false)[0].not_nil!.should be_a(Account)
         end
@@ -78,7 +78,7 @@ module Associations
           Post.repo
             .inner_join(&.accounts)
             .where(Account, {"name", :eq, "account"})
-            .get[0]
+            .list[0]?
             .not_nil!
             .should be_a(Post)
 
@@ -93,7 +93,7 @@ module Associations
           post = Post.repo
                   .where(Post, {"title", :eq, "post title"})
                   .eager_load(&.accounts)
-                  .get[0].not_nil!
+                  .list[0]?.not_nil!
 
           post.accounts(load: false)[0].not_nil!.should be_a(Account)
 

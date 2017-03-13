@@ -58,7 +58,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasMany::AsPolymorphic
             {{slave_class}}.table_name, { {{foreign_key}}, :in, array_of_local_keys }
           ).where(
             {{slave_class}}.table_name, { {{foreign_polymorphic_type_field}}, :eq, {{ owner_class_name_for_type_field }} }
-          ).get
+          ).list
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{foreign_key.id}}].{{property_name.id}}(load: false) << child
@@ -119,7 +119,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasMany::AsPolymorphic
           {{slave_class}}.repo.where(
             {{slave_class}}.table_name, { "{{foreign_key.id}}", :eq, self.{{ local_key.id }} },
                                         { {{foreign_polymorphic_type_field}}, :eq, {{ owner_class_name_for_type_field }} }
-          ).get
+          ).list
         else
           Shepherd::Model::Collection({{slave_class}}).new
         end

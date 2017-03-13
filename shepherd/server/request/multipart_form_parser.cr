@@ -8,7 +8,7 @@ class Shepherd::Server::Request::MultipartFormParser
       if headers["Content-Type"]?
         value_to_return[field] = Shepherd::Server::Request::MultipartFileWrapper.new(io: io, meta: meta, headers: headers)
       else
-        value_to_return[field] = io.gets_to_end
+        value_to_return[field] = io.to_s
       end
     end
 

@@ -20,7 +20,7 @@ module Associations
 
       end
 
-      describe "#relations(load: false)" do
+      describe "#relation(load: false)" do
 
         it "should not load related model and return property" do
 
@@ -29,7 +29,7 @@ module Associations
 
       end
 
-      describe "#realations(yield_repo: true, &block)" do
+      describe "#realation(yield_repo: true, &block)" do
 
         it "returns repo#where : QueryBuilder of related model" do
 
@@ -38,11 +38,11 @@ module Associations
           end
         end
 
-        it "when #get called on repo returned value should be assigned to #relations" do
+        it "when #get called on repo returned value should be assigned to #relation" do
 
           account = db_helper.fetch_account
           account.user(yield_repo: true) do |repo|
-            repo.get[0]?
+            repo.get
           end
           account.user(load: false).not_nil!.should be_a(User)
         end
@@ -58,7 +58,7 @@ module Associations
           Account.repo
             .inner_join(&.user)
             .where(User, {"name", :eq, "joe"})
-            .get[0]
+            .get
             .not_nil!
             .should be_a(Account)
 
@@ -74,7 +74,7 @@ module Associations
           account = Account.repo
                   .where(Account, {"name", :eq, "account"})
                   .eager_load(&.user)
-                  .get[0].not_nil!
+                  .get.not_nil!
 
           account.user(load: false).not_nil!.should be_a(User)
 

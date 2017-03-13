@@ -57,7 +57,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Through
             .where(
               {{through_relation_class_name}},
               { {{foreign_key_for_through}}, :in, array_of_local_keys }
-            ).get
+            ).list
 
           child_collection.each do |child|
             mapper_by_local_key[child.{{local_key_for_through.id}}].{{property_name.id}} = child
@@ -120,7 +120,7 @@ class Shepherd::Model::Associations::GenerationMacros::HasOne::Through
             .inner_join(&.{{this_joined_through.id}})
             .where({{through_class}}, { {{local_key_for_through}}, :eq, self.{{local_key_for_through.id}} })
             .limit(1)
-            .get[0]?
+            .get
         else
           nil
         end
